@@ -1,0 +1,44 @@
+[project]
+name = "industry"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "dagster",
+    "dagster-webserver",
+    "psycopg[binary]",
+    "duckdb",
+    # licitacoes / noticias (portadas do bateleur-pipelines)
+    "pandas",
+    "sqlalchemy>=2",
+    "psycopg2-binary",
+    "requests",
+    "httpx",
+    "beautifulsoup4",
+    "lxml",
+    "feedparser",
+    "selenium",
+    "PyMuPDF",
+    "openpyxl",
+    "rapidfuzz",
+    "pendulum",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+# zero-shot mDeBERTa (licitacoes e gate do M&A) — CPU. No Linux, instale o torch
+# do indice CPU antes (o Dockerfile faz isso) para nao baixar as rodas CUDA.
+ml = ["torch", "transformers", "sentencepiece", "protobuf"]
+
+[tool.dagster]
+module_name = "industry.definitions"
+code_location_name = "industry"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["industry*"]
+
+[tool.setuptools.package-data]
+industry = ["**/*.sql"]

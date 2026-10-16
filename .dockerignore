@@ -1,0 +1,7 @@
+.git
+.env
+.data
+.dagster_home
+**/__pycache__
+*.egg-info
+tests

@@ -1,0 +1,21 @@
+storage:
+  postgres:
+    postgres_db:
+      hostname: postgres
+      port: 5432
+      db_name: dagster
+      username:
+        env: POSTGRES_USER
+      password:
+        env: POSTGRES_PASSWORD
+
+# No máximo 2 runs simultâneas: as coletas abrem muitas conexões e o zero-shot
+# usa CPU/RAM; mais que isso disputa a máquina com o resto.
+run_coordinator:
+  module: dagster.core.run_coordinator
+  class: QueuedRunCoordinator
+  config:
+    max_concurrent_runs: 2
+
+telemetry:
+  enabled: false
