@@ -28,12 +28,22 @@ Lista interna. Só anotações: nada aqui está em andamento.
 
 ## Licitações: novas fontes
 
-- [ ] Pesquisar fontes de licitações estrangeiras que aceitem empresas do Brasil (organismos
-      multilaterais, governos e agências de outros países).
+- [x] Pesquisar fontes de licitações estrangeiras que aceitem empresas do Brasil (organismos
+      multilaterais, governos e agências de outros países). Integradas em 17/10: Banco Mundial,
+      PNUD e UNGM (agências da ONU). BID e AfDB bloqueiam acesso automático (403). Governos de
+      outros países (TED da UE, SAM.gov dos EUA) não foram vistos. Em 18/10, com foco em pessoa
+      física: entrou o PRODOC (consultor individual da UNESCO e do IICA nos ministérios) e a
+      marcação `ambito` e `pessoa_fisica` no bronze, no painel e no home. Fora: ADB (Brasil não
+      é membro), ReliefWeb (precisa de appname aprovado) e avaliador do Horizon Europe
+      (cadastro, não licitação).
 - [ ] Pesquisar como aplicar para essas licitações estrangeiras (cadastro, documentos, idioma,
-      representação local, moeda e pagamento).
-- [ ] Pesquisar outras fontes de contratos parecidos com licitações (chamadas, editais de inovação,
-      compras de empresas privadas e estatais fora do PNCP).
+      representação local, moeda e pagamento). Parcial: UNGM pede cadastro gratuito de
+      fornecedor; Banco Mundial recebe manifestação de interesse por e-mail ao contato do aviso;
+      PNUD "IC" e ONU "individual consultants" aceitam pessoa física. Falta o resto.
+- [x] Pesquisar outras fontes de contratos parecidos com licitações (chamadas, editais de inovação,
+      compras de empresas privadas e estatais fora do PNCP). Integradas em 17/10: Sebrae (Canal
+      do Fornecedor, todos os estados) e Petronect (Petrobras e subsidiárias). Finep ficou de fora
+      (só financiamento). Não vistos: SESI/SENAI (um portal por estado) e compras privadas.
 
 ## Licitações: só o que está aberto para concorrer
 
@@ -46,11 +56,15 @@ Lista interna. Só anotações: nada aqui está em andamento.
 
 ## Licitações: campos ainda não coletados ou não padronizados
 
-- [ ] Modalidade normalizada em todas as fontes (já existe `normalizar_modalidade`, não chega ao painel).
-- [ ] Situação, datas de abertura e encerramento da proposta para fontes fora do PNCP.
-- [ ] Critério de julgamento, modo de disputa, exclusividade ME/EPP, registro de preços.
-- [ ] Link direto do edital e dos anexos (não só da página da contratação).
-- [ ] Valor estimado onde a fonte não traz (às vezes só no edital).
+Feito em 17/10 pelo asset `licitacoes_detalhes` (tabela `licitacoes.detalhes`, aparece no home):
+
+- [x] Modalidade normalizada em todas as fontes (chega ao painel).
+- [x] Situação, datas de abertura e encerramento da proposta para fontes fora do PNCP. Só onde a
+      fonte publica: as novas trazem; bancos antigos e Querido Diário seguem sem prazo.
+- [x] Critério de julgamento, modo de disputa, exclusividade ME/EPP, registro de preços. Completo
+      no PNCP; nas outras fontes só o que a listagem traz (ME/EPP também lido no edital).
+- [x] Link direto do edital e dos anexos (PNCP, Petronect e anexos que os coletores já traziam).
+- [x] Valor estimado onde a fonte não traz: lido no PDF do edital (até 25 editais por execução).
 
 ## Pendências do que já foi feito
 

@@ -72,6 +72,17 @@ FONTES = [
           "Querido Diário - Diários oficiais municipais"),
     Fonte("bndes_inovacao", "bndes_inovacao", "collect_bndes_inovacao",
           "BNDES - Chamadas públicas de inovação (CPSI)"),
+    # fora do PNCP: Sistema S e estatal da Lei 13.303
+    Fonte("sebrae", "sebrae", "collect_sebrae", "Sebrae - Canal do Fornecedor"),
+    Fonte("petronect", "petronect", "collect_petronect", "Petronect - Petrobras e subsidiárias"),
+    # internacionais que aceitam empresa do Brasil (PNUD e ONU também pessoa física)
+    Fonte("banco_mundial", "banco_mundial", "collect_banco_mundial",
+          "Banco Mundial - Avisos de aquisição"),
+    Fonte("pnud", "pnud", "collect_pnud", "PNUD - Avisos de aquisição"),
+    Fonte("ungm", "ungm", "collect_ungm", "UNGM - Agências da ONU"),
+    # consultor individual (pessoa fisica) em projetos de cooperacao com ministerios
+    Fonte("prodoc", "prodoc", "collect_prodoc",
+          "PRODOC - Consultor individual em projetos de cooperação internacional"),
 ]
 # banco_do_nordeste.py fica fora (como na origem): o download do CSV via Selenium
 # remoto cai no container do Selenium, não no worker. O BNB é coberto pelo PNCP.
@@ -267,7 +278,8 @@ def licitacoes_score_atrasados(context: dg.AssetExecutionContext) -> dg.Material
                                           "repontuadas": int(repontuadas)})
 
 
-@dg.asset(group_name=GRUPO, deps=[licitacoes_gold_filtros], kinds={"postgres"})
+@dg.asset(group_name=GRUPO, deps=[licitacoes_gold_filtros], kinds={"postgres"},
+          op_tags={"pncp": "true"})
 def licitacoes_prazos(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
     """Consulta no PNCP o prazo de proposta dos itens do gold_filtros que ainda
     não têm (``licitacoes.prazos_proposta``)."""
@@ -278,9 +290,20 @@ def licitacoes_prazos(context: dg.AssetExecutionContext) -> dg.MaterializeResult
                                           if isinstance(v, (int, float, str))})
 
 
+@dg.asset(group_name=GRUPO, deps=[licitacoes_gold_filtros, licitacoes_score_atrasados],
+          kinds={"postgres"}, op_tags={"pncp": "true"})
+def licitacoes_detalhes(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
+    """Completa os itens pontuados com o que as listagens não trazem: critério de
+    julgamento, ME/EPP, registro de preços, amparo legal, anexos e valor estimado
+    (PNCP e, sem valor, o PDF do edital). Ver detalhes.py."""
+    from industry.licitacoes.detalhes import coletar_detalhes
+
+    return dg.MaterializeResult(metadata=coletar_detalhes())
+
+
 ASSETS = [*COLETAS, licitacoes_bronze, licitacoes_silver, licitacoes_gold,
           licitacoes_gold_filtros, licitacoes_verticais, licitacoes_score_atrasados,
-          licitacoes_prazos]
+          licitacoes_prazos, licitacoes_detalhes]
 CHECKS = [licitacoes_coletas_ok]
 
 licitacoes_job = dg.define_asset_job(

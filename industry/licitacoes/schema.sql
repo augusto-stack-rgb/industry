@@ -62,6 +62,20 @@ CREATE TABLE IF NOT EXISTS licitacoes.bronze (
 CREATE INDEX IF NOT EXISTS bronze_row_hash_idx ON licitacoes.bronze (row_hash);
 CREATE INDEX IF NOT EXISTS bronze_fonte_nativo_idx ON licitacoes.bronze (fonte, id_nativo);
 
+-- Marcacoes para filtrar (bronze.marcar): ambito nacional/internacional e se o
+-- aviso aceita pessoa fisica (consultor individual, sem CNPJ): 'sim' ou 'nao'.
+ALTER TABLE licitacoes.bronze ADD COLUMN IF NOT EXISTS ambito text;
+ALTER TABLE licitacoes.bronze ADD COLUMN IF NOT EXISTS pessoa_fisica text;
+UPDATE licitacoes.bronze
+   SET ambito = CASE WHEN fonte IN ('Banco Mundial - Avisos de aquisição', 'PNUD - Avisos de aquisição',
+                                    'UNGM - Agências da ONU',
+                                    'PRODOC - Consultor individual em projetos de cooperação internacional')
+                     THEN 'internacional' ELSE 'nacional' END,
+       pessoa_fisica = CASE WHEN categoria ILIKE 'pessoa f%'
+                              OR tipo ILIKE '%Individual Consultant Selection%' THEN 'sim' ELSE 'nao' END
+ WHERE ambito IS NULL OR pessoa_fisica IS NULL;
+CREATE INDEX IF NOT EXISTS bronze_marcacoes_idx ON licitacoes.bronze (ambito, pessoa_fisica);
+
 CREATE TABLE IF NOT EXISTS licitacoes.silver (
     id_unificado text PRIMARY KEY,
     fonte text,
@@ -86,4 +100,28 @@ CREATE TABLE IF NOT EXISTS licitacoes.gold (
     link text,
     contratado text,
     numero text
+);
+
+-- Detalhes dos itens pontuados (detalhes.py): o que as listagens não trazem.
+CREATE TABLE IF NOT EXISTS licitacoes.detalhes (
+    id_unificado text PRIMARY KEY,
+    modalidade text,                 -- normalizada (db.normalizar_modalidade)
+    amparo_legal text,
+    instrumento text,                -- edital, aviso de contratação direta...
+    srp boolean,                     -- sistema de registro de preços
+    modo_disputa text,
+    criterio_julgamento text,        -- menor preço, técnica e preço...
+    beneficio_me_epp text,           -- exclusiva, cota reservada, não se aplica
+    orcamento_sigiloso boolean,
+    valor_estimado numeric(18,2),
+    valor_origem text,               -- listagem | pncp | edital
+    situacao text,
+    data_abertura_proposta timestamp,
+    data_encerramento_proposta timestamp,
+    link_sistema_origem text,        -- onde a disputa acontece
+    link_edital text,
+    anexos jsonb,                    -- [{titulo, tipo, url}]
+    qtd_itens int,
+    origem text,                     -- bronze | pncp
+    atualizado_em timestamptz DEFAULT now()
 );

@@ -37,6 +37,9 @@ TB_PRAZOS = "prazos_proposta"
 # Vertical (categoria de negócio) do objeto, classificada por LLM no asset
 # `licitacoes_verticais`. Lida pelo home (CRM pessoal).
 TB_VERTICAIS = "verticais"
+# Campos de detalhe (critério, ME/EPP, SRP, anexos, valor do edital) dos itens do
+# gold_filtros, preenchidos pelo asset `licitacoes_detalhes` (detalhes.py).
+TB_DETALHES = "detalhes"
 
 # ── Anexos (gravados em $INDUSTRY_DATA_DIR/licitacoes/<run_id>/...) ──────────
 ANEXOS_PREFIX = "anexos"          # <dag_id>/anexos/<fonte>/<arquivo>
@@ -75,6 +78,9 @@ BRONZE_COLS = [
     "criterio_julgamento", "modo_disputa", "tipo_julgamento",
     "fonte_rotulo", "filtros_usados", "data_coleta",
     "dados_originais", "row_hash", "run_date",
+    # marcacoes para filtrar (bronze.marcar): nacional/internacional e se aceita
+    # pessoa fisica (consultor individual, sem CNPJ): "sim" ou "nao"
+    "ambito", "pessoa_fisica",
 ]
 
 # Colunas do SILVER e GOLD (imagem enviada pelo usuário).
@@ -130,7 +136,7 @@ GRUPOS = {
     "responsavel": ["Responsavel", "responsavel"],
     "uf": ["uf", "UF de abertura da licitação"],
     "municipio": ["municipio", "Município de abertura"],
-    "local_abertura": ["Local de Abertura da Licitação"],
+    "local_abertura": ["Local de Abertura da Licitação", "pais"],
     "link": ["link", "Link", "link_detalhe", "Link_PDF", "link_pdf"],
     "site_projeto": ["site_projeto", "pagina_b3"],
     "documentos": ["documentos", "anexos", "pdfs", "Arquivos"],
@@ -166,6 +172,12 @@ SOURCE_STABLE_ID = {
     # bndes_inovacao.py
     "Querido Diário - Diários oficiais municipais": ["id"],
     "BNDES - Chamadas públicas de inovação (CPSI)": ["id"],
+    # fora do PNCP (sebrae.py, petronect.py, banco_mundial.py, pnud.py, ungm.py)
+    "Sebrae - Canal do Fornecedor": ["id"],
+    "Petronect - Petrobras e subsidiárias": ["id"],
+    "Banco Mundial - Avisos de aquisição": ["id"],
+    "PNUD - Avisos de aquisição": ["id"],
+    "UNGM - Agências da ONU": ["id"],
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -644,3 +656,91 @@ QUERIDO_DIARIO_TERMOS = [
 # fora do licitacoes.json que o coletor bndes.py lê.
 BNDES_INOVACAO_URL = ("https://www.bndes.gov.br/wps/portal/site/home/transparencia/"
                       "licitacoes-contratos/licitacoes/chamadas-publicas-inovacao2")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FONTES FORA DO PNCP (out/2026): Sistema S, estatal 13.303 e organismos
+# internacionais que aceitam empresa (e, no PNUD/ONU, pessoa física) do Brasil.
+# ══════════════════════════════════════════════════════════════════════════════
+# Sebrae — Canal do Fornecedor (SCF): processos de TODOS os Sebrae estaduais e do
+# nacional, que seguem regulamento próprio e não publicam no PNCP. Um POST no
+# formulário de filtro devolve tudo "Em Andamento" (~325 em 17/10/2026).
+SEBRAE_SCF_URL = "https://scf3.sebrae.com.br/PortalCf/Licitacoes"
+# Petrobras/Transpetro/PBio — Petronect: oportunidades com proposta aberta,
+# inteiras num JSON (serviço OData do SAP usado pela própria página pública).
+PETRONECT_LISTA_URL = ("https://www.petronect.com.br/sap/opu/odata/SAP/"
+                       "YPCON_GET_XML_SRV/getXMLSet('01')?$format=json")
+PETRONECT_ANEXO_URL = ("https://www.petronect.com.br/sap/opu/odata/SAP/"
+                       "YPCON_PUB_ATTACHMENT_DOWNLOAD_SRV/attachmentSet('{id}')/$value")
+PETRONECT_PAGINA = ("https://www.petronect.com.br/irj/go/km/docs/pccshrcontent/"
+                    "Site%20Content%20(Legacy)/Portal2018/pt/lista_licitacoes_publicadas_ft.html")
+# Banco Mundial — avisos de aquisição dos projetos financiados (qualquer país
+# membro pode concorrer, o Brasil incluso). Busca textual por termo.
+BANCO_MUNDIAL_API = "https://search.worldbank.org/api/v2/procnotices"
+BANCO_MUNDIAL_TIPOS = {"Invitation for Bids", "Request for Expression of Interest",
+                       "Invitation for Prequalification", "Request for Proposals"}
+BANCO_MUNDIAL_TERMOS = ["machine learning", "artificial intelligence", "data science",
+                        "data engineering", "predictive", "forecasting",
+                        "operations research", "computer vision", "data platform",
+                        "data governance", "big data", "natural language processing"]
+# PNUD — todos os avisos abertos numa página. "IC - Individual contractor" é
+# contratação de PESSOA FÍSICA (consultor individual), sem CNPJ.
+PNUD_URL = "https://procurement-notices.undp.org/"
+# UNGM — portal de compras das agências da ONU (OMS, UNICEF, OIT, FAO...). Busca
+# por termo no título, só avisos ativos. O PNUD fica de fora (coletor próprio).
+UNGM_URL = "https://www.ungm.org/Public/Notice"
+UNGM_TERMOS = ["data", "machine learning", "artificial intelligence", "AI ",
+               "forecasting", "predictive", "analytics platform", "statistical model",
+               "digital", "software"]
+UNGM_MAX_PAGINAS = 4                 # 15 avisos por página, mais recentes primeiro
+# Consultor individual (pessoa fisica) em projetos de cooperacao internacional
+# executados com ministerios (UNESCO, IICA, PNUD, OEI, OPAS, FAO): os editais
+# saem nas paginas dos ministerios no gov.br, um PDF por edital. Ano corrente e
+# anterior; o coletor le cada PDF para tirar objeto e prazo.
+PRODOC_PAGINAS = [
+    ("MDS", "https://www.gov.br/mds/pt-br/acesso-a-informacao/internacional/editais-em-selecao/{ano}"),
+    ("MDH", "https://www.gov.br/mdh/pt-br/navegue-por-temas/cooperacao-internacional"),
+]
+PRODOC_MAX_PDFS = 60                 # por execucao, dos mais novos para os mais antigos
+
+# Ambito de cada fonte (o resto e nacional). Nome = valor de `fonte` no bronze.
+FONTES_INTERNACIONAIS = {
+    "Banco Mundial - Avisos de aquisição", "PNUD - Avisos de aquisição",
+    "UNGM - Agências da ONU",
+    "PRODOC - Consultor individual em projetos de cooperação internacional",
+}
+
+# Termos de tema para textos em inglês, espanhol e francês (fontes internacionais).
+# Mesma regra do termos.py: palavra inteira, sem acento, minúsculo. "AI" em
+# maiúsculas é tratado à parte (termos.termos_exterior), porque "ai" minúsculo
+# casa com o francês "j'ai".
+TERMOS_EXTERIOR = [
+    # inglês
+    "machine learning", "deep learning", "artificial intelligence", "generative ai",
+    "large language model", "large language models", "llm", "llms", "nlp",
+    "natural language processing", "computer vision", "data science", "data scientist",
+    "data engineering", "data engineer", "data pipeline", "data pipelines",
+    "data platform", "data governance", "data management", "master data", "big data",
+    "data lake", "data warehouse", "mlops", "predictive model", "predictive models",
+    "predictive modelling", "predictive modeling", "predictive analytics",
+    "forecasting", "forecast model", "time series", "operations research",
+    "optimization model", "mathematical optimization", "statistical modelling",
+    "statistical modeling", "econometric", "remote sensing", "geospatial analysis",
+    "digital twin", "chatbot", "recommender system", "anomaly detection",
+    # espanhol
+    "aprendizaje automatico", "inteligencia artificial", "ciencia de datos",
+    "cientifico de datos", "ingenieria de datos", "gobernanza de datos",
+    "modelos predictivos", "modelo predictivo", "pronostico", "pronosticos",
+    "investigacion de operaciones", "vision por computador", "plataforma de datos",
+    # francês
+    "intelligence artificielle", "apprentissage automatique", "science des donnees",
+    "gouvernance des donnees", "modele predictif", "modeles predictifs",
+]
+
+# ── Detalhes (detalhes.py) ────────────────────────────────────────────────────
+# 3 consultas ao PNCP por item (detalhe, itens, arquivos) com a pausa do rate
+# limit: ~10 s por item. 80 itens = ~13 min. O resto vai nas próximas execuções.
+DETALHES_LIMITE = 80
+DETALHES_MAX_SEGUNDOS = 1200
+DETALHES_VALOR_LIMITE = 25          # editais baixados por execução para achar o valor
+DETALHES_MAX_PDF_MB = 25
+DETALHES_PAGINAS_PDF = 40           # o valor costuma estar no começo ou no TR

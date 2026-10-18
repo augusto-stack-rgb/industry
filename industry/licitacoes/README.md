@@ -13,8 +13,8 @@ financeira (M&A, business consulting, serviços financeiros, risco de crédito).
 ## Fluxo (assets em `assets.py`)
 
 ```
-licitacoes_coleta_<fonte> (15) → bronze → silver → gold → gold_filtros → verticais → score_atrasados
-                                                                   └→ prazos
+licitacoes_coleta_<fonte> (20) → bronze → silver → gold → gold_filtros → verticais → score_atrasados
+                                                                   ├→ prazos              └→ detalhes
 ```
 
 - **Coleta — fontes gerais (qualquer órgão):**
@@ -26,12 +26,45 @@ licitacoes_coleta_<fonte> (15) → bronze → silver → gold → gold_filtros �
   - `querido_diario` — diários oficiais municipais (Open Knowledge Brasil): municípios fora do
     PNCP e sinais antes do edital. Só entra trecho com marcador de contratação + tema.
   - `bndes_inovacao` — chamadas de solução inovadora (CPSI) do BNDES, várias de dados/IA.
+- **Coleta — fora do PNCP (out/2026):**
+  - `sebrae` — Canal do Fornecedor: processos de todos os Sebrae (regulamento próprio, não
+    publicam no PNCP), inclusive "Desafio da Inovação" e credenciamentos.
+  - `petronect` — oportunidades abertas da Petrobras, Transpetro e subsidiárias (Lei 13.303).
+- **Coleta — internacionais (aceitam empresa do Brasil):** filtro de tema em inglês,
+  espanhol, francês e português (`TERMOS_EXTERIOR`, `termos.termos_exterior`); o país vai
+  em `local_abertura`.
+  - `banco_mundial` — avisos de projetos financiados pelo Banco Mundial (API pública),
+    só com prazo futuro. Manifestação de interesse vai por e-mail ao contato do aviso.
+  - `pnud` — todos os avisos abertos do PNUD. "IC - Individual contractor" é contratação de
+    pessoa física, sem CNPJ.
+  - `ungm` — portal das agências da ONU (OMS, UNICEF, OIT, FAO...), menos o PNUD. "Call for
+    individual consultants" também é pessoa física. Para responder é preciso cadastro
+    gratuito de fornecedor no UNGM.
+  - `prodoc` — editais de consultor individual (pessoa física) da UNESCO, do IICA e de
+    outros organismos em projetos de cooperação com ministérios (páginas "editais em
+    seleção" no gov.br, `PRODOC_PAGINAS`). Lê cada PDF (objeto, projeto, prazo); fica o que
+    tem prazo aberto, sem filtro de tema, porque são poucos e o score ordena.
+  - **Marcação para filtrar** (`bronze.marcar`, colunas `ambito` e `pessoa_fisica` do
+    bronze, expostas na view `licitacoes_painel`): `ambito` é `internacional` para as fontes
+    de `FONTES_INTERNACIONAIS` e `nacional` para o resto; `pessoa_fisica` é `sim` quando o
+    aviso aceita consultor individual sem CNPJ (PNUD "IC", UNGM "Call for individual
+    consultants", Banco Mundial "Individual Consultant Selection" e todo o PRODOC). No home,
+    filtros "onde" e "quem pode concorrer".
+  - Ficaram de fora: BID e AfDB (bloqueiam acesso automático, 403) e Finep (só
+    financiamento; as compras dela já saem no PNCP).
 - **Coleta — fontes bancárias (herdadas):** ComprasNet e portais de bancos públicos.
   Coletor que falha registra o erro e não trava o resto; o asset check
   `licitacoes_coletas_ok` fica vermelho.
 - **Gold:** remove objetos com `PALAVRAS_EXCLUIR` e mantém só o "acionável" (janela de
   proposta aberta). O filtro pelo texto do PDF do edital está desligado
   (`LICITACOES_FILTRAR_ANEXO`), porque termos genéricos aparecem em todo edital.
+- **Detalhes** (`detalhes.py` → `licitacoes.detalhes`): para os itens pontuados, do mais
+  relevante ao menos (até 80 por execução), completa o que as listagens não trazem:
+  modalidade normalizada, critério de julgamento, benefício ME/EPP, registro de preços,
+  modo de disputa, amparo legal, orçamento sigiloso, situação, prazos, link de onde a
+  disputa acontece e a lista de anexos. No PNCP vem do detalhe, dos itens e dos arquivos
+  da contratação; nas outras fontes, do que o coletor trouxe. Sem valor estimado, baixa o
+  PDF do edital e procura "valor estimado/global/máximo ... R$" (`valor_origem = edital`).
 - **Destino:** schema `licitacoes` em `LICITACOES_PG_URL` (padrão: Supabase).
 
 ## Score de relevância

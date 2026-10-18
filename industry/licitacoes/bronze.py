@@ -16,13 +16,20 @@ from datetime import date
 
 import pandas as pd
 
-from industry.licitacoes.config import GRUPOS, PASSTHROUGH, BRONZE_COLS, JANELA_BRONZE_DIAS
+from industry.licitacoes.config import (GRUPOS, PASSTHROUGH, BRONZE_COLS, JANELA_BRONZE_DIAS,
+                                         FONTES_INTERNACIONAIS)
 from industry.licitacoes import db
 from industry.licitacoes.banestes import FONTE as FONTE_BANESTES
 from industry.licitacoes.bcb import FONTE as FONTE_BCB
 from industry.licitacoes.banrisul_total import FONTE as FONTE_BANRISUL
 from industry.licitacoes.querido_diario import FONTE as FONTE_QUERIDO_DIARIO
 from industry.licitacoes.bndes_inovacao import FONTE as FONTE_BNDES_INOVACAO
+from industry.licitacoes.banco_mundial import FONTE as FONTE_BANCO_MUNDIAL
+from industry.licitacoes.petronect import FONTE as FONTE_PETRONECT
+from industry.licitacoes.pnud import FONTE as FONTE_PNUD
+from industry.licitacoes.sebrae import FONTE as FONTE_SEBRAE
+from industry.licitacoes.ungm import FONTE as FONTE_UNGM
+from industry.licitacoes.prodoc import FONTE as FONTE_PRODOC
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +40,13 @@ logger = logging.getLogger(__name__)
 # colisão por sufixo (#2, #3...) em vez de descarte. Ver DECISOES.md.
 FONTES_ID_NATIVO_UNICO = {FONTE_BANESTES, FONTE_BCB, FONTE_BANRISUL,
                           # id = hash do trecho/título (querido_diario.py, bndes_inovacao.py)
-                          FONTE_QUERIDO_DIARIO, FONTE_BNDES_INOVACAO}
+                          FONTE_QUERIDO_DIARIO, FONTE_BNDES_INOVACAO,
+                          # id do próprio portal; o número/referência se repete
+                          # entre unidades (Sebrae) e versões do aviso (Banco Mundial)
+                          FONTE_SEBRAE, FONTE_PETRONECT, FONTE_BANCO_MUNDIAL,
+                          FONTE_PNUD, FONTE_UNGM,
+                          # id = hash da url do PDF do edital (prodoc.py)
+                          FONTE_PRODOC}
 
 # Fontes que passaram a expor `numero_controle_pncp` DEPOIS de já terem linhas no
 # bronze. O `base_id` prefere o controle, então adotá-lo agora reescreveria o
@@ -67,6 +80,21 @@ def _ano(canon: dict) -> str:
     m = re.search(r"/(20\d{2})|(20\d{2})",
                   f"{canon.get('numero','')} {canon.get('titulo','')}")
     return (m.group(1) or m.group(2)) if m else ""
+
+
+def marcar(canon: dict, row: dict) -> None:
+    """Marcacoes para filtrar no painel, iguais para todas as fontes.
+
+    ambito: "internacional" para organismos de fora (FONTES_INTERNACIONAIS),
+    "nacional" para o resto. pessoa_fisica: "sim" quando o aviso aceita consultor
+    individual sem CNPJ; o coletor diz isso em `pessoa_fisica` ou na `categoria`
+    ("Pessoa física (consultor individual)").
+    """
+    canon["ambito"] = "internacional" if canon.get("fonte") in FONTES_INTERNACIONAIS else "nacional"
+    pf = str(row.get("pessoa_fisica", "")).strip().lower()
+    if pf not in ("sim", "nao"):
+        pf = "sim" if str(canon.get("categoria", "")).lower().startswith("pessoa f") else "nao"
+    canon["pessoa_fisica"] = pf
 
 
 def normalizar_para_bronze(df_nativo: pd.DataFrame, fonte: str) -> pd.DataFrame:
@@ -104,6 +132,7 @@ def normalizar_para_bronze(df_nativo: pd.DataFrame, fonte: str) -> pd.DataFrame:
             canon["titulo"] = (f"{canon.get('tipo','')} {canon.get('numero','')}".strip()
                                or canon.get("objeto", "")[:120])
         canon["ano"] = canon.get("ano") or _ano(canon)
+        marcar(canon, row)
         # linha nativa completa (sem vazios) -> nada se perde
         canon["dados_originais"] = json.dumps(
             {k: v for k, v in row.items() if str(v).strip() not in ("", "nan", "None")},

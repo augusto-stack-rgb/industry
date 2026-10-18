@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from industry.licitacoes.config import TEMAS, TERMOS_TI
+from industry.licitacoes.config import TEMAS, TERMOS_EXTERIOR, TERMOS_TI
 
 
 def normalizar(texto: str) -> str:
@@ -26,3 +26,22 @@ _RX = re.compile(r"(?<![a-z0-9])(" + "|".join(re.escape(t) for t in _TERMOS) + r
 def termos_encontrados(texto: str) -> list[str]:
     """Termos de tema/TI presentes no texto (sem repetição, na ordem em que aparecem)."""
     return list(dict.fromkeys(_RX.findall(normalizar(texto))))
+
+
+_TERMOS_EXT = sorted(set(TERMOS_EXTERIOR), key=len, reverse=True)
+_RX_EXT = re.compile(r"(?<![a-z0-9])(" + "|".join(re.escape(t) for t in _TERMOS_EXT)
+                     + r")(?![a-z0-9])")
+# Termos da lista em português que, nos avisos internacionais, aparecem mais em
+# compra genérica (servidores, SAP, celulares) do que em serviço de dados.
+_GENERICOS_EXTERIOR = {"supply chain", "mdm", "iot", "rpa"}
+_RX_AI = re.compile(r"(?<![A-Za-z0-9])AI(?![A-Za-z0-9])")
+
+
+def termos_exterior(texto: str) -> list[str]:
+    """Termos de tema em inglês/espanhol/francês, e em português (avisos de
+    Moçambique, Angola, Timor). "AI" só conta em maiúsculas."""
+    achados = _RX_EXT.findall(normalizar(texto)) + [
+        t for t in termos_encontrados(texto) if t not in _GENERICOS_EXTERIOR]
+    if _RX_AI.search(str(texto or "")):
+        achados.append("ai")
+    return list(dict.fromkeys(achados))

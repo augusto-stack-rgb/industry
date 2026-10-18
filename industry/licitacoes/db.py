@@ -84,6 +84,24 @@ def normalizar_modalidade(raw) -> str:
     t = s.lower()
     if not t:
         return "(vazio)"
+    # Organismos internacionais (Banco Mundial, PNUD, ONU): rótulos em inglês.
+    if "individual contractor" in t or "individual consultant" in t:
+        return "Internacional - Consultor individual"
+    if "expression of interest" in t:
+        return "Internacional - Manifestação de interesse"
+    if "request for proposal" in t or t.startswith("rfp"):
+        return "Internacional - Proposta (RFP)"
+    if "request for quotation" in t or t.startswith("rfq"):
+        return "Internacional - Cotação (RFQ)"
+    if ("invitation for bid" in t or "request for bids" in t or t.startswith("itb")
+            or "invitation to bid" in t):
+        return "Internacional - Licitação (ITB)"
+    if "prequalification" in t:
+        return "Pré-qualificação"
+    if "cpsi" in t or "182/2021" in t or "desafio" in t:
+        return "CPSI / Desafio de inovação"
+    if "contrata" in t and "direta" in t:
+        return "Dispensa"
     if "inexig" in t or "inaplicab" in t:
         return "Inexigibilidade"
     if "credenc" in t:
@@ -113,7 +131,13 @@ def normalizar_modalidade(raw) -> str:
     # Eletrônica"), então o tratamento não podia ficar aninhado dentro do ramo
     # `"preg" in t` — 98 linhas caíam em "Outros/Genérico", incluindo uma
     # "Lei 13.303 - Presencial" que é pregão presencial claro.
+    if "pré-qualif" in t or "pre-qualif" in t or "pré qualif" in t:
+        return "Pré-qualificação"
+    if "manifesta" in t and "interesse" in t:
+        return "Manifestação de Interesse"
     if "13.303" in t or "13303" in t:
+        if t.startswith("licita") and "eletr" not in t and "presencial" not in t:
+            return "Licitação (Lei 13.303)"
         if "eletr" in t:
             return "Pregão Eletrônico"
         if "presencial" in t:
