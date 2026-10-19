@@ -15,7 +15,8 @@ dagster dev                 # http://localhost:3000
 | grupo | asset | o que faz | agenda |
 |---|---|---|---|
 | jobs | `vagas_coletadas` | roda os coletores de `employment/employment/coletores` (conjunto de termos `dados` por padrão) e acrescenta em `employment/coletas/` | diária, 07:00 |
-| jobs | `vagas_supabase` | sobe para `jobs` as vagas coletadas nos últimos 30 dias | diária, depois da coleta |
+| jobs | `vagas_classificadas` | lê a descrição de cada vaga ainda não classificada e grava, por LLM (Groq, Cerebras e Mistral em paralelo, um worker por chave), a função real, os componentes do trabalho, o setor e a modalidade em `employment/classificacao/classificacao_coletas.csv`; incremental | diária, depois da coleta |
+| jobs | `vagas_supabase` | sobe para `jobs` as vagas coletadas nos últimos 30 dias, com função, componentes, setor, modalidade e nível (estágio a lead) | diária, depois da classificação |
 | prospects | `prospects_supabase` | sobe para `prospects` os recortes da Receita Federal exportados por `scripts/receita_federal/filtrar.py` | manual |
 | outsourcers | `outsourcers_rf` | sobe para `outsourcers` as consultorias pequenas exportadas pelos filtros em `filtros/outsourcers/` | manual |
 | outsourcers | `outsourcers_github` | donos de repositórios ativos com tópicos de MLOps/LLMOps/RAG/OR, filtrados por localização (Brasil por padrão) | semanal, segunda 08:00 |

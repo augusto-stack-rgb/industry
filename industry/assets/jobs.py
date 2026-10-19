@@ -1,5 +1,9 @@
-"""Frente jobs: roda os coletores do repositorio employment e sobe as vagas
-recentes para a secao Vagas do home."""
+"""Frente jobs: roda os coletores do repositorio employment, classifica as
+descricoes por LLM e sobe as vagas recentes para a secao Vagas do home.
+
+    vagas_coletadas -> vagas_classificadas -> vagas_supabase
+"""
+import csv
 import importlib
 import json
 import os
@@ -15,11 +19,14 @@ AGENDA = '0 7 * * *'
 EMPLOYMENT = Path(os.getenv('EMPLOYMENT_DIR', Path(__file__).resolve().parents[3] / 'employment'))
 COLETORES = EMPLOYMENT / 'employment' / 'coletores'
 COLETAS = EMPLOYMENT / 'employment' / 'coletas'
+CLASSIFICACAO = EMPLOYMENT / 'employment' / 'classificacao'
+CLASSIFICADAS = CLASSIFICACAO / 'classificacao_coletas.csv'
+ENV = Path(__file__).resolve().parents[2] / '.env'
 
 
-def _importar(nome):
-    if str(COLETORES) not in sys.path:
-        sys.path.insert(0, str(COLETORES))
+def _importar(nome, pasta=COLETORES):
+    if str(pasta) not in sys.path:
+        sys.path.insert(0, str(pasta))
     return importlib.import_module(nome)
 
 
@@ -77,22 +84,72 @@ def _vaga(r):
     }
 
 
+class ClassificacaoConfig(dg.Config):
+    # Groq (gpt-oss-120b), Cerebras e Mistral (ministral-14b), um worker por
+    # chave; as chaves sao GROQ_API_KEY_N, CEREBRAS_API_KEY_N e MISTRAL_API_KEY_N
+    provedores: list[str] = ['groq', 'cerebras', 'mistral']
+    limite: int | None = None   # teto de vagas por execucao; None classifica tudo que falta
+
+
+@dg.asset(group_name='jobs', deps=[vagas_coletadas], description=(
+    'Le a DESCRICAO de cada vaga ainda nao classificada e grava, por LLM, a funcao '
+    'real (que muitas vezes difere do titulo), os componentes do trabalho (ex.: Data '
+    'Engineer com MLOps), o setor do empregador e a modalidade, em '
+    'employment/classificacao/classificacao_coletas.csv. Incremental: pula ids ja feitos.'))
+def vagas_classificadas(context: dg.AssetExecutionContext, config: ClassificacaoConfig,
+                        supabase: Supabase) -> dg.MaterializeResult:
+    with supabase.execucao(context, 'jobs', AGENDA) as run:
+        cls = _importar('classificar_coletas', CLASSIFICACAO)
+        r = cls.classificar(env=str(ENV), saida=CLASSIFICADAS, provedores=config.provedores,
+                            limite=config.limite, log=context.log.info, intervalo_log=60)
+        if r['pendentes'] and not r['chaves']:
+            raise RuntimeError('ha vagas pendentes e nenhuma chave de LLM no ambiente')
+        if r['pendentes'] and not r['classificadas']:
+            raise RuntimeError(f'nenhuma vaga classificada; chaves fora: {r["aposentadas"]}')
+        run['linhas'] = r['classificadas']
+        run['mensagem'] = (f"{r['restantes']} ficaram para a proxima execucao"
+                           if r['restantes'] else None)
+    return dg.MaterializeResult(metadata={k: v for k, v in r.items() if k != 'aposentadas'})
+
+
+def _classificacao():
+    """id na fonte -> campos do LLM, mais o nivel normalizado (estagio..lead)."""
+    if not CLASSIFICADAS.exists():
+        return {}
+    with CLASSIFICADAS.open(encoding='utf-8') as f:
+        return {l['id']: l for l in csv.DictReader(f)}
+
+
 class SyncConfig(dg.Config):
     dias: int = 30   # so vagas coletadas nesta janela sobem (limite de 500 MB do Supabase)
 
 
-@dg.asset(group_name='jobs', deps=[vagas_coletadas], description=(
+@dg.asset(group_name='jobs', deps=[vagas_classificadas], description=(
     'Sobe para a tabela jobs do home as vagas de employment/coletas coletadas nos '
-    'ultimos N dias. Preserva status e notas editados no home.'))
+    'ultimos N dias, com funcao, componentes, setor, modalidade e nivel. Preserva '
+    'status e notas editados no home.'))
 def vagas_supabase(context: dg.AssetExecutionContext, config: SyncConfig,
                    supabase: Supabase) -> dg.MaterializeResult:
     with supabase.execucao(context, 'jobs', AGENDA) as run:
         corte = (date.today() - timedelta(days=config.dias)).isoformat()
+        cls = _classificacao()
+        nivel = _importar('nivel', CLASSIFICACAO).nivel
         vagas = {}
         for arq in sorted(COLETAS.glob('*.json')):
+            # .himalayas_cursor.json e .solides_pagina.json sao estado dos
+            # coletores, nao vagas; o glob do pathlib nao pula arquivo oculto
+            if arq.name.startswith('.'):
+                continue
             for r in json.loads(arq.read_text(encoding='utf-8')):
                 if r.get('id') and r.get('fonte') and (r.get('coletado_em') or '') >= corte:
                     v = _vaga(r)
+                    c = cls.get(r['id'], {})
+                    v.update(funcao=c.get('categoria') or None,
+                             componentes=c.get('componentes') or None,
+                             setor=c.get('setor') or None,
+                             modalidade=c.get('modalidade') or None,
+                             nivel=nivel(r.get('seniority'), r.get('title')))
                     vagas[v['id']] = v
         run['linhas'] = supabase.upsert('jobs', list(vagas.values()), 'id')
-    return dg.MaterializeResult(metadata={'vagas': len(vagas)})
+    com = sum(1 for v in vagas.values() if v['funcao'])
+    return dg.MaterializeResult(metadata={'vagas': len(vagas), 'classificadas': com})
