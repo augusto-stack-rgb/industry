@@ -318,7 +318,7 @@ CHECKS = [licitacoes_coletas_ok]
 licitacoes_job = dg.define_asset_job(
     "licitacoes_job",
     selection=dg.AssetSelection.groups(GRUPO, GRUPO_COLETA),
-    description="Coleta, filtra e pontua licitações (ML/IA/DS/Forecasting/Pesquisa Operacional).",
+    description="Coleta, filtra e pontua licitações (ML, IA, ciência de dados, forecasting e dados).",
     executor_def=dg.multiprocess_executor.configured({
         "max_concurrent": 4,
         # Um navegador por vez no Selenium remoto (era o selenium_pool da origem).
