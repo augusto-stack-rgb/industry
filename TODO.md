@@ -50,7 +50,11 @@ Objetivo: marcar de forma determinística, sem depender de pedir caso a caso, se
 - [ ] Definir o que torna uma licitação aplicável. Candidatos a critério: aceita pessoa física
       ou exige CNPJ; exigências de habilitação (atestado, patrimônio líquido mínimo, garantia,
       prova de conceito, equipe mínima, certificações); valor e porte; prazo aberto; tema dentro
-      dos serviços; idioma e país; modalidade e exclusividade ME/EPP.
+      dos serviços; idioma e país; modalidade e exclusividade ME/EPP; critério de julgamento e,
+      quando houver nota técnica, quanto dela vem de histórico (atestados, experiência, equipe)
+      e quanto da proposta (metodologia, solução). Ex.: CPSI de Itajaí, 100 pontos todos da
+      proposta; Banco Mundial INDV, seleção só por CV (histórico); pregão de menor preço, sem
+      nota técnica.
 - [ ] Depois de definido: extrair esses campos do edital e da listagem (regra explícita, com o
       trecho do edital como prova) e gravar a marcação `aplicavel` com o motivo, para filtrar
       no home.
