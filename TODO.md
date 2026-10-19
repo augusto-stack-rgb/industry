@@ -111,6 +111,12 @@ Feito em 17/10 pelo asset `licitacoes_detalhes` (tabela `licitacoes.detalhes`, a
       (pneu, fralda) ficam sempre em 0. O modelo é o mesmo na Groq e na Cerebras; nenhum modelo
       existe nos três provedores (a Mistral só serve os dela). Falta decidir a correção (ex.:
       mediana de 3 rodadas, pontuar um item por chamada, ou critérios explícitos por campo).
+      Diagnóstico (18/10, só Groq, 7 editais, 4 repetições): um edital por chamada varia 6
+      (relevância) e 13 (viabilidade); lote fixo de 15, 3 e 11; lote embaralhado, como em
+      produção, 13 e 30. O lote também DESLOCA a nota: cadastro territorial dá 80 sozinho e
+      40 a 45 no lote; suporte de TI dá viabilidade 20 sozinho e 80 no lote.
+- [ ] Cerebras sem crédito: as 4 chaves dão HTTP 402 na geração (a listagem de modelos
+      funciona). Toda a pontuação está rodando só na Groq.
 - [ ] BDMG respondendo 403 (bloqueio do site).
 - [ ] Registrar as execuções de licitações em `pipelines`/`pipeline_runs` para aparecerem no home.
 - [ ] Testar a aba de licitações no home (já está na main). Depois, quando o Augusto pedir.

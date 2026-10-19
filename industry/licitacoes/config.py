@@ -383,10 +383,7 @@ LLM_SYS = (
     "estatística e preditiva, mineração de dados, modelos de classificação/propensão/risco, "
     "detecção de fraudes e anomalias; (D) Forecasting — previsão de demanda, séries "
     "temporais, previsão de carga, consumo, vazões, geração de energia, arrecadação; "
-    "(E) Research Operations (no Brasil: pesquisa operacional, ciência de dados industrial, "
-    "supply chain) — otimização matemática, programação linear/inteira, simulação, "
-    "roteirização, planejamento e programação da produção, S&OP, otimização de estoques e "
-    "da cadeia de suprimentos, manutenção preditiva, gêmeos digitais; (F) Data Engineering, "
+    "(F) Data Engineering, "
     "MDM e Governança de dados — pipelines e integração de dados, plataformas de dados, data "
     "lake/lakehouse/data warehouse (construção), gestão de dados mestres (MDM), qualidade, "
     "catálogo, metadados e governança de dados. "
@@ -396,7 +393,7 @@ LLM_SYS = (
     "Notas ALTAS: desenvolvimento, implantação ou sustentação de modelos de ML ou de "
     "soluções de IA; serviços de ciência de dados; modelos ou sistemas de previsão; "
     "engenharia de dados, MDM ou governança de dados; "
-    "estudos e sistemas de otimização/pesquisa operacional; MLOps; solução de IA com "
+    "MLOps; solução de IA com "
     "serviços técnicos especializados de desenvolvimento e manutenção. "
     "Notas MÉDIAS (30-60): assinatura/aquisição de plataforma de IA ou ML que inclua "
     "implantação, customização, integração ou treinamento de modelos; fábrica de software "
@@ -414,7 +411,7 @@ LLM_SYS = (
     "ASSINATURA OU LICENÇA DE SOFTWARE/SaaS PRONTO (inclusive de IA ou governança de "
     "dados) sem desenvolvimento sob medida tem relevância no máximo 30; "
     "MANUTENÇÃO de equipamentos, data center ou infraestrutura física (mesmo chamada de "
-    "preditiva) NÃO é ML: a área E só vale quando o objeto é desenvolver modelos; "
+    "preditiva) NÃO é ML; "
     "TERCEIRIZAÇÃO DE OPERAÇÃO (atendimento, call center, central de relacionamento, "
     "digitação, postos de trabalho), mesmo com recursos de IA, tem relevância no máximo 40; "
     "obras, materiais, equipamentos, limpeza, vigilância, transporte; leilões, concessões "
@@ -439,7 +436,7 @@ LLM_SYS = (
     "\"areas\":[\"A\"...],\"motivo\":\"≤12 palavras\",\"viabilidade\":0-100,"
     "\"motivo_viabilidade\":\"≤12 palavras\"}]} — um objeto por licitação, mesma ordem/id; "
     "os motivos SEMPRE em português do Brasil; "
-    "\"areas\" lista as letras A-F que se aplicam."
+    "\"areas\" lista as letras (A, B, C, D, F) que se aplicam."
 )
 
 # Pesos do score combinado: LLM domina (70%), keyword e zero-shot 15% cada.

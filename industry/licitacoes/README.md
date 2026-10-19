@@ -2,7 +2,7 @@
 
 Pipeline medallion que coleta licitações públicas, filtra e **pontua a relevância** para
 serviços de **Machine Learning Engineering/MLOps, AI Engineering, Data Science,
-Forecasting e Research Operations** (pesquisa operacional / ciência de dados industrial).
+Forecasting e Data Engineering, MDM e governança de dados**.
 Porte da DAG `COMERCIAL_Licitacoes` do bateleur-pipelines, onde o foco era consultoria
 financeira (M&A, business consulting, serviços financeiros, risco de crédito).
 
@@ -76,10 +76,13 @@ relevante quando `≥ 0.5`; corte de exibição sugerido `0.35`.
 |---|---|
 | `s_kw` | keyword dos 5 `TEMAS` no objeto (0/1) |
 | `s_zs` | zero-shot mDeBERTa em CPU (máximo entre labels); `LICITACOES_ZEROSHOT=0` desliga |
-| `s_llm` | Groq `openai/gpt-oss-120b`, nota 0-100 ÷ 100, áreas A–E |
+| `s_llm` | Groq `openai/gpt-oss-120b`, nota 0-100 ÷ 100, áreas A, B, C, D e F |
 
 **Áreas do LLM** (`config.LLM_SYS`, colunas `llm_*`): (A) ML Engineering/MLOps,
-(B) AI Engineering, (C) Data Science, (D) Forecasting, (E) Research Operations.
+(B) AI Engineering, (C) Data Science, (D) Forecasting, (F) Data Engineering, MDM e
+governança. A antiga (E) Research Operations saiu do prompt em 18/10/2026; a coluna
+`llm_research_operations` continua no banco, vazia daqui em diante. Os termos de pesquisa
+operacional seguem na lista de palavras-chave (`TEMAS`).
 Notas altas para serviços técnicos nessas áreas; médias para plataforma de IA com
 implantação/customização; **baixas para data analytics/BI**, sistemas sem IA,
 infraestrutura, licenças prontas, terceirização de mão de obra, cursos e consultoria
