@@ -301,9 +301,18 @@ def licitacoes_detalhes(context: dg.AssetExecutionContext) -> dg.MaterializeResu
     return dg.MaterializeResult(metadata=coletar_detalhes())
 
 
+@dg.asset(group_name=GRUPO, deps=[licitacoes_detalhes], kinds={"postgres"})
+def licitacoes_nota_tecnica(context: dg.AssetExecutionContext) -> dg.MaterializeResult:
+    """Divide a nota técnica das licitações abertas entre histórico e proposta, por
+    regra explícita (critério de julgamento e pontos lidos no edital). Ver nota_tecnica.py."""
+    from industry.licitacoes.nota_tecnica import calcular
+
+    return dg.MaterializeResult(metadata=calcular())
+
+
 ASSETS = [*COLETAS, licitacoes_bronze, licitacoes_silver, licitacoes_gold,
           licitacoes_gold_filtros, licitacoes_verticais, licitacoes_score_atrasados,
-          licitacoes_prazos, licitacoes_detalhes]
+          licitacoes_prazos, licitacoes_detalhes, licitacoes_nota_tecnica]
 CHECKS = [licitacoes_coletas_ok]
 
 licitacoes_job = dg.define_asset_job(

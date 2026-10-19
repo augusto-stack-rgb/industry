@@ -125,3 +125,14 @@ CREATE TABLE IF NOT EXISTS licitacoes.detalhes (
     origem text,                     -- bronze | pncp
     atualizado_em timestamptz DEFAULT now()
 );
+
+-- Divisao da nota tecnica entre historico e proposta (nota_tecnica.py)
+CREATE TABLE IF NOT EXISTS licitacoes.nota_tecnica (
+    id_unificado text PRIMARY KEY,
+    tem_nota_tecnica boolean,        -- false: menor preco/maior desconto; null: nao sabido
+    peso_historico integer,          -- % dos pontos tecnicos em experiencia, atestados, equipe...
+    peso_proposta integer,           -- % dos pontos tecnicos na proposta (solucao, metodologia...)
+    metodo text,
+    evidencia text,                  -- criterios e pontos lidos no edital
+    atualizado_em timestamptz DEFAULT now()
+);
