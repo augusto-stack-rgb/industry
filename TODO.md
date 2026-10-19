@@ -115,6 +115,8 @@ Feito em 17/10 pelo asset `licitacoes_detalhes` (tabela `licitacoes.detalhes`, a
       (relevância) e 13 (viabilidade); lote fixo de 15, 3 e 11; lote embaralhado, como em
       produção, 13 e 30. O lote também DESLOCA a nota: cadastro territorial dá 80 sozinho e
       40 a 45 no lote; suporte de TI dá viabilidade 20 sozinho e 80 no lote.
+- [ ] Não pontuar a viabilidade (ou descartar) quando a relevância já for baixa: a viabilidade
+      só importa para o que é do tema. Definir o corte de relevância antes. Não fazer ainda.
 - [ ] Cerebras sem crédito: as 4 chaves dão HTTP 402 na geração (a listagem de modelos
       funciona). Toda a pontuação está rodando só na Groq.
 - [ ] BDMG respondendo 403 (bloqueio do site).
