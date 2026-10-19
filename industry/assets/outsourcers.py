@@ -1,5 +1,4 @@
-"""Frente outsourcers: quem poderia fazer outsourcing de MLOps, AI Engineering
-e Research Operations.
+"""Frente outsourcers: quem poderia fazer outsourcing de MLOps e AI Engineering.
 
 Duas origens automaticas, mais o cadastro manual no home:
   - rf:     consultorias pequenas da base da Receita Federal (mesmo caminho dos
@@ -47,9 +46,9 @@ def outsourcers_rf(context: dg.AssetExecutionContext, supabase: Supabase) -> dg.
 class GithubConfig(dg.Config):
     # busca de pessoas: o GitHub casa o termo com login, nome e bio, e `location:` filtra
     termos: list[str] = ['mlops', 'llmops', 'machine learning engineer', 'ai engineer',
-                         'llm engineer', 'operations research']
+                         'llm engineer']
     topicos: list[str] = ['mlops', 'llmops', 'ml-engineering', 'model-serving',
-                          'feature-store', 'rag', 'operations-research']
+                          'feature-store', 'rag']
     # trecho que precisa aparecer na localizacao do perfil; lista vazia = qualquer lugar
     localizacoes: list[str] = ['brazil', 'brasil']
     pessoas_por_termo: int = 100
@@ -67,7 +66,7 @@ def _gh(url, token):
 
 
 @dg.asset(group_name='outsourcers', description=(
-    'Busca no GitHub pessoas por termo (MLOps, LLM, AI/ML engineer, OR) e localizacao, '
+    'Busca no GitHub pessoas por termo (MLOps, LLM, AI/ML engineer) e localizacao, '
     'mais donos de repositorios ativos com esses topicos; le o perfil publico e grava '
     'quem bate com a localizacao. '
     'Sinais: repositorios, topicos, estrelas, seguidores, hireable.'))

@@ -19,7 +19,7 @@ dagster dev                 # http://localhost:3000
 | jobs | `vagas_supabase` | sobe para `jobs` as vagas coletadas nos últimos 30 dias, com função, componentes, setor, modalidade e nível (estágio a lead) | diária, depois da classificação |
 | prospects | `prospects_supabase` | sobe para `prospects` os recortes da Receita Federal exportados por `scripts/receita_federal/filtrar.py` | manual |
 | outsourcers | `outsourcers_rf` | sobe para `outsourcers` as consultorias pequenas exportadas pelos filtros em `filtros/outsourcers/` | manual |
-| outsourcers | `outsourcers_github` | donos de repositórios ativos com tópicos de MLOps/LLMOps/RAG/OR, filtrados por localização (Brasil por padrão) | semanal, segunda 08:00 |
+| outsourcers | `outsourcers_github` | donos de repositórios ativos com tópicos de MLOps/LLMOps/RAG, filtrados por localização (Brasil por padrão) | semanal, segunda 08:00 |
 
 Os parâmetros (fontes, termos, janela de dias, tópicos, localizações) são `Config` do
 Dagster e podem ser trocados no Launchpad sem mexer no código.
