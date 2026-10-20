@@ -133,6 +133,40 @@ Feito em 17/10 pelo asset `licitacoes_detalhes` (tabela `licitacoes.detalhes`, a
       conta no `.env`. Tiradas do rodízio em 18/10 (comentadas). As outras 6 da Groq, 4 da
       Cerebras e 4 da Mistral respondem.
 
+## Prospects clientes: ganchos para abordar (não implementar sem pedido)
+
+Universo: as empresas da segunda pipeline (`scripts/receita_federal/avaliar_clientes.py`,
+página Clientes do home), que podem usar RAG sobre documentos ou dashboard de analytics. Mirar
+em empresas pequenas e médias. Gancho = fato recente e verificável que liga a empresa a um dos
+dois pacotes. Nenhum contato é feito pela pipeline.
+
+Fontes levantadas em 20/10/2026, da mais forte e viável para a menos:
+
+- [ ] Vagas que revelam dor (BI, PCP, controladoria, qualidade, documentação, assistência
+      técnica, SAC técnico): Gupy, Indeed, Catho, Vagas.com e o "trabalhe conosco" do site.
+      Casar com as vagas que a pipeline de vagas já coleta, por CNPJ ou nome. Os dois pacotes.
+- [ ] Diferenças mensais na base da RF: filial nova, aumento de capital, CNAE novo, sócio ou
+      administrador novo. Dashboard.
+- [ ] Diferenças no site: PDFs, manuais e fichas novos, linha de produto nova, unidades,
+      e-commerce, área do cliente ou do representante. Releitura do cache de páginas. RAG e
+      dashboard.
+- [ ] Contratos públicos ganhos, por CNPJ, no PNCP (já coletado pelas licitações).
+- [ ] Financiamento: dados abertos do BNDES por CNPJ, BRDE, Finep, Embrapii, Fapergs, Fapesc.
+- [ ] Certificação ou registro novo: ISO 9001, Inmetro, Anvisa, MAPA. RAG.
+- [ ] Expositores de feiras do setor (Mercopar, Fimec, Febratex, Expointer, Fenatran). RAG.
+- [ ] Notícias regionais pelo nome: Google News RSS, Pioneiro, NSC, Simecs, Acij.
+- [ ] Lista anual de empresas exportadoras do MDIC.
+- [ ] Reclamações de atendimento (Reclame Aqui, Google): bloqueiam automação, só manual.
+- [ ] Instagram e LinkedIn da empresa ou do dono: só verificação manual.
+
+Desenho proposto: cada fonte vira um asset no Dagster e grava numa tabela `ganchos` (empresa,
+tipo, data, pacote, fato, link da evidência); a página Clientes mostra os ganchos recentes, o
+funil ganha "com gancho nos últimos 90 dias" e a prioridade combina encaixe com recência do
+gancho. Primeira leva sugerida: vagas, diferenças na RF e diferenças no site.
+
+- [ ] Rotina do Claude pela API que lê os dados das pipelines implementadas, identifica
+      possíveis ganchos e adiciona uma notificação nova no home.
+
 ## Decisões em aberto (do Augusto)
 
 - [ ] Prospects: avaliação de chance por sinais com citação. Pode usar LLM para extrair os sinais?
