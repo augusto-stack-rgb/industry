@@ -19,7 +19,7 @@ import pandas as pd
 import requests
 
 from industry.licitacoes.config import (
-    PALAVRAS_EXCLUIR, GOLD_COLS, TB_GOLD, RECENCIA_DIAS,
+    PALAVRAS_EXCLUIR, GOLD_COLS, TB_GOLD, RECENCIA_DIAS, FONTES_INOVACAO,
 )
 from industry.licitacoes import db
 from industry.licitacoes.termos import termos_encontrados, termos_nucleo
@@ -54,6 +54,8 @@ def filtrar_tema(df_silver: pd.DataFrame) -> pd.DataFrame:
     if df_silver is None or df_silver.empty:
         return pd.DataFrame(columns=GOLD_COLS)
     mask = df_silver["objeto"].fillna("").map(lambda t: bool(termos_encontrados(t)))
+    if "fonte" in df_silver.columns:   # portais de inovação passam direto (config)
+        mask = mask | df_silver["fonte"].isin(FONTES_INOVACAO)
     logger.info(f"[gold] filtro tema: {len(df_silver)} -> {int(mask.sum())}")
     return df_silver[mask].copy()
 

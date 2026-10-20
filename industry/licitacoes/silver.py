@@ -20,7 +20,7 @@ import logging
 
 import pandas as pd
 
-from industry.licitacoes.config import SILVER_COLS, TB_SILVER
+from industry.licitacoes.config import FONTES_INOVACAO, SILVER_COLS, TB_SILVER
 from industry.licitacoes import db
 from industry.licitacoes.termos import termos_encontrados
 
@@ -59,7 +59,7 @@ def bronze_para_silver(df_bronze: pd.DataFrame) -> pd.DataFrame:
         "contratado": b.get("contratado", ""),
         "numero": b.get("numero", ""),
         "no_tema": b.get("objeto", pd.Series("", index=b.index)).map(
-            lambda t: bool(termos_encontrados(t))),
+            lambda t: bool(termos_encontrados(t))) | b["fonte"].isin(FONTES_INOVACAO),
     })
     # strings vazias -> None (colunas de texto) para consistência no banco
     for c in ("tipo", "objeto", "situacao", "link", "contratado", "numero"):

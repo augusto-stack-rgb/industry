@@ -29,6 +29,7 @@ from industry.licitacoes.petronect import FONTE as FONTE_PETRONECT
 from industry.licitacoes.pnud import FONTE as FONTE_PNUD
 from industry.licitacoes.sebrae import FONTE as FONTE_SEBRAE
 from industry.licitacoes.ungm import FONTE as FONTE_UNGM
+from industry.licitacoes.config import FONTES_INOVACAO
 from industry.licitacoes.prodoc import FONTE as FONTE_PRODOC
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ FONTES_ID_NATIVO_UNICO = {FONTE_BANESTES, FONTE_BCB, FONTE_BANRISUL,
                           FONTE_SEBRAE, FONTE_PETRONECT, FONTE_BANCO_MUNDIAL,
                           FONTE_PNUD, FONTE_UNGM,
                           # id = hash da url do PDF do edital (prodoc.py)
-                          FONTE_PRODOC}
+                          FONTE_PRODOC} | FONTES_INOVACAO   # portais de CPSI (cpsi_portais.py)
 
 # Fontes que passaram a expor `numero_controle_pncp` DEPOIS de já terem linhas no
 # bronze. O `base_id` prefere o controle, então adotá-lo agora reescreveria o

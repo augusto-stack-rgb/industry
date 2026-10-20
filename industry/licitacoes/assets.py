@@ -79,6 +79,15 @@ FONTES = [
     Fonte("banco_mundial", "banco_mundial", "collect_banco_mundial",
           "Banco Mundial - Avisos de aquisição"),
     Fonte("pnud", "pnud", "collect_pnud", "PNUD - Avisos de aquisição"),
+    # portais de CPSI e desafios de inovação fora do PNCP (cpsi_portais.py)
+    Fonte("govtech_place", "cpsi_portais", "collect_govtech_place",
+          "GovTech Place - Desafios de órgãos públicos"),
+    Fonte("enap_desafios", "cpsi_portais", "collect_enap_desafios", "Enap - Desafios (gov.br)"),
+    Fonte("cnj_cpsi", "cpsi_portais", "collect_cnj_cpsi", "CNJ - Contratação Pública de Solução Inovadora"),
+    Fonte("goias_govtech", "cpsi_portais", "collect_goias_govtech", "Goiás GovTech - Editais CPSI"),
+    Fonte("copasa_hub", "cpsi_portais", "collect_copasa_hub", "Copasa HUB - Editais CPSI"),
+    Fonte("desafio_rio", "cpsi_portais", "collect_desafio_rio", "Desafio Rio - Prefeitura do Rio"),
+    Fonte("catalisa_gov", "cpsi_portais", "collect_catalisa_gov", "CatalisaGov (Sebrae) - Consultas públicas"),
     Fonte("ungm", "ungm", "collect_ungm", "UNGM - Agências da ONU"),
     # consultor individual (pessoa fisica) em projetos de cooperacao com ministerios
     Fonte("prodoc", "prodoc", "collect_prodoc",

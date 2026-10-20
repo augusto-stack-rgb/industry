@@ -63,6 +63,23 @@ s = bronze_para_silver(pd.DataFrame({"id_unificado": ["a", "b"], "fonte": ["X", 
                                      "objeto": ["Modelos preditivos de demanda", "Reforma do prédio"]}))
 checar("no_tema", s["no_tema"].tolist() == [True, False], str(s["no_tema"].tolist()))
 
+print("\n── portais de CPSI")
+from industry.licitacoes import cpsi_portais as cp  # noqa: E402
+from industry.licitacoes.config import FONTES_INOVACAO  # noqa: E402
+
+checar("prazo dd/mm sem ano", cp._prazo_no_texto("Inscrições até 02/11", 2026) == "2026-11-02")
+checar("prazo por extenso", cp._prazo_no_texto("inscrições até 15 de junho de 2026", 2026) == "2026-06-15")
+checar("sem prazo", cp._prazo_no_texto("Edital publicado", 2026) == "")
+checar("abertos tira os encerrados",
+       [r["id"] for r in cp._abertos([{"id": "a", "data_encerramento_proposta": "2000-01-01"},
+                                      {"id": "b", "data_encerramento_proposta": ""}])] == ["b"])
+df = pd.DataFrame({"id_unificado": ["x"], "objeto": ["Cenas 3D para perícia"], "fonte": [cp.FONTE_GOVTECH]})
+checar("portal de inovação passa pelo tema", gold.filtrar_tema(df)["id_unificado"].tolist() == ["x"])
+s2 = bronze_para_silver(pd.DataFrame({"id_unificado": ["x"], "fonte": [cp.FONTE_GOVTECH],
+                                      "objeto": ["Cenas 3D para perícia"]}))
+checar("portal de inovação marca no_tema", s2["no_tema"].tolist() == [True])
+checar("fontes de inovação registradas", cp.FONTE_GOVTECH in FONTES_INOVACAO and cp.FONTE_COPASA in FONTES_INOVACAO)
+
 print("\n" + "=" * 72)
 if FALHAS:
     print(f"{len(FALHAS)} falha(s): {FALHAS}")

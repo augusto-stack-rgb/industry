@@ -179,6 +179,14 @@ SOURCE_STABLE_ID = {
     "Banco Mundial - Avisos de aquisição": ["id"],
     "PNUD - Avisos de aquisição": ["id"],
     "UNGM - Agências da ONU": ["id"],
+    # portais de CPSI e desafios de inovação (cpsi_portais.py)
+    "GovTech Place - Desafios de órgãos públicos": ["id"],
+    "Enap - Desafios (gov.br)": ["id"],
+    "CNJ - Contratação Pública de Solução Inovadora": ["id"],
+    "Goiás GovTech - Editais CPSI": ["id"],
+    "Copasa HUB - Editais CPSI": ["id"],
+    "Desafio Rio - Prefeitura do Rio": ["id"],
+    "CatalisaGov (Sebrae) - Consultas públicas": ["id"],
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -716,3 +724,20 @@ DETALHES_MAX_SEGUNDOS = 1200
 DETALHES_VALOR_LIMITE = 25          # editais baixados por execução para achar o valor
 DETALHES_MAX_PDF_MB = 25
 DETALHES_PAGINAS_PDF = 40           # o valor costuma estar no começo ou no TR
+
+# ── Portais de CPSI e desafios de inovação (cpsi_portais.py) ─────────────────
+# Notícias e desafios publicados nos últimos N dias (os que ainda estão abertos
+# ou sem prazo conhecido; os encerrados ficam de fora na coleta).
+CPSI_PORTAIS_DIAS = 60
+# Fontes que passam direto pelo filtro de tema (gold.filtrar_tema): desafio de
+# inovação raramente usa os termos de tema, e o LLM decide a relevância.
+FONTES_INOVACAO = {
+    "GovTech Place - Desafios de órgãos públicos",
+    "Enap - Desafios (gov.br)",
+    "CNJ - Contratação Pública de Solução Inovadora",
+    "Goiás GovTech - Editais CPSI",
+    "Copasa HUB - Editais CPSI",
+    "Desafio Rio - Prefeitura do Rio",
+    "CatalisaGov (Sebrae) - Consultas públicas",
+    "BNDES - Chamadas públicas de inovação (CPSI)",
+}
