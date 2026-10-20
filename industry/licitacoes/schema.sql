@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS licitacoes.silver (
     contratado text,
     numero text
 );
+-- casa com os temas (gold.filtrar_tema); o funil do home conta por aqui
+ALTER TABLE licitacoes.silver ADD COLUMN IF NOT EXISTS no_tema boolean;
 
 CREATE TABLE IF NOT EXISTS licitacoes.gold (
     id_unificado text PRIMARY KEY,

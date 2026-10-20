@@ -22,6 +22,7 @@ from industry.licitacoes.config import (
     PALAVRAS_EXCLUIR, GOLD_COLS, TB_GOLD, RECENCIA_DIAS,
 )
 from industry.licitacoes import db
+from industry.licitacoes.termos import termos_encontrados, termos_nucleo
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,28 @@ _ANX = [re.compile(r"\b" + re.escape(p) + r"\b", re.IGNORECASE) for p in PALAVRA
 
 
 def _objeto_sujo(texto: str) -> bool:
-    return any(rx.search(texto or "") for rx in _OBJ)
+    """Tem termo excluído E nenhum termo forte do núcleo (TEMAS). "Câmeras com
+    inteligência artificial para vigilância patrimonial" não sai por "Vigilância"."""
+    return any(rx.search(texto or "") for rx in _OBJ) and not termos_nucleo(texto)
 
 
 def _anexo_sujo(texto: str) -> bool:
     return any(rx.search(texto or "") for rx in _ANX)
+
+
+def filtrar_tema(df_silver: pd.DataFrame) -> pd.DataFrame:
+    """Etapa 0: fica só o que casa com os temas (TEMAS + TERMOS_TI, termos.py).
+
+    As fontes amplas (PNCP aberto, Querido Diário, Sebrae, Petronect) já filtram
+    na coleta; as de bancos (Banrisul, Banestes, BRB, BCB, ComprasNet, PNCP por
+    CNPJ) trazem todas as compras. Medido em 19/10/2026: 183 de 797 do silver no
+    tema; o resto ia para o filtro de palavras e para o LLM.
+    """
+    if df_silver is None or df_silver.empty:
+        return pd.DataFrame(columns=GOLD_COLS)
+    mask = df_silver["objeto"].fillna("").map(lambda t: bool(termos_encontrados(t)))
+    logger.info(f"[gold] filtro tema: {len(df_silver)} -> {int(mask.sum())}")
+    return df_silver[mask].copy()
 
 
 def filtrar_objeto(df_silver: pd.DataFrame) -> pd.DataFrame:

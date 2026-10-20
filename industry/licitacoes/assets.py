@@ -218,7 +218,8 @@ def licitacoes_gold(context: dg.AssetExecutionContext,
 
     if licitacoes_silver.empty:
         return dg.Output(pd.DataFrame(), metadata={"novos": 0, "acionaveis": 0})
-    cand = gold_mod.filtrar_objeto(licitacoes_silver)
+    # tema (regex) -> palavras excluídas (regex) -> prazo -> LLM: o barato antes
+    cand = gold_mod.filtrar_objeto(gold_mod.filtrar_tema(licitacoes_silver))
     if FILTRAR_ANEXO and not cand.empty:
         textos = anexos_mod.textos_por_id(cand["id_unificado"].tolist(),
                                           "licitacoes", context.run.run_id)
@@ -267,7 +268,10 @@ def licitacoes_score_atrasados(context: dg.AssetExecutionContext) -> dg.Material
     from industry.licitacoes import db
     from industry.licitacoes import score as score_mod
 
-    atrasados = db.gold_sem_score(MAX_SCORE_ATRASADO)
+    from industry.licitacoes import gold as gold_mod
+
+    # só o que ainda recebe proposta: pontuar o que já fechou é gasto de LLM
+    atrasados = gold_mod.filtrar_acionaveis(db.gold_sem_score(MAX_SCORE_ATRASADO))
     if atrasados.empty:
         return dg.MaterializeResult(metadata={"pendentes": 0, "pontuadas": 0})
     repontuadas = db.apagar_gold_filtros(atrasados["id_unificado"].tolist())

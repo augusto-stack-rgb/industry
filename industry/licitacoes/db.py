@@ -427,23 +427,20 @@ def ensure_verticais(engine=None) -> None:
 
 
 def objetos_sem_vertical(limite: int | None = None) -> pd.DataFrame:
-    """Licitações do gold ainda SEM vertical. Colunas: id_unificado, objeto.
+    """Licitações PONTUADAS (gold_filtros) ainda sem vertical. Colunas:
+    id_unificado, objeto.
 
-    A base é o **gold**, não o gold_filtros: a aba "Todos da semana" do email e
-    do painel vem do gold (que é maior — nem tudo que passa no filtro de palavras
-    chega a ser pontuado), e sem isto aqueles itens ficariam eternamente sem
-    vertical. O score do gold_filtros entra só para ORDENAR: o mais relevante é
-    classificado primeiro, então uma rodada cortada pelo teto (ou pela cota da
-    Groq) já cobre o que importa. Mesma consulta do CLI manual
-    (`db.objetos_para_classificar` do bateleur-artifacts).
+    Era o gold inteiro, por causa da aba "Todos da semana" do email da origem,
+    que não existe mais; classificar o que fechou antes de ser pontuado era
+    gasto de LLM (19/10/2026). O mais relevante primeiro: se o teto ou a cota
+    cortar, corta o que menos importa.
     """
     ensure_verticais()
     extra = f" LIMIT {int(limite)}" if limite else ""
     sql = (
-        f"SELECT g.id_unificado, g.objeto "
-        f"  FROM {SCHEMA}.{TB_GOLD} g "
-        f"  LEFT JOIN {SCHEMA}.{TB_GOLD_FILTROS} gf ON gf.id_unificado = g.id_unificado "
-        f"  LEFT JOIN {SCHEMA}.{TB_VERTICAIS} v ON v.id_unificado = g.id_unificado "
+        f"SELECT gf.id_unificado, gf.objeto "
+        f"  FROM {SCHEMA}.{TB_GOLD_FILTROS} gf "
+        f"  LEFT JOIN {SCHEMA}.{TB_VERTICAIS} v ON v.id_unificado = gf.id_unificado "
         f" WHERE v.id_unificado IS NULL "
         f" ORDER BY gf.score_combinado DESC NULLS LAST{extra}"
     )

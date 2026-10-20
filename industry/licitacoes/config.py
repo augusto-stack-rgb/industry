@@ -84,9 +84,10 @@ BRONZE_COLS = [
 ]
 
 # Colunas do SILVER e GOLD (imagem enviada pelo usuário).
-SILVER_COLS = ["id_unificado", "fonte", "tipo", "objeto", "situacao",
-               "data", "valor", "link", "contratado", "numero"]
-GOLD_COLS = SILVER_COLS  # gold = silver filtrado
+GOLD_COLS = ["id_unificado", "fonte", "tipo", "objeto", "situacao",
+             "data", "valor", "link", "contratado", "numero"]
+# silver = as mesmas + se casa com os temas (gold.filtrar_tema; lido pelo funil do home)
+SILVER_COLS = GOLD_COLS + ["no_tema"]
 
 # ── Unificação conceitual (canônico -> candidatos nativos, em ordem de pref.) ──
 # Usado no bronze para mapear colunas com nomes diferentes por fonte.
@@ -183,78 +184,48 @@ SOURCE_STABLE_ID = {
 # ══════════════════════════════════════════════════════════════════════════════
 # FILTROS DE PALAVRAS EXCLUÍDAS (objeto; anexo opcional)
 # ══════════════════════════════════════════════════════════════════════════════
-# Lista herdada da origem (foco em consultoria financeira), MENOS os termos que
-# aparecem justamente nos objetos que agora interessam — mantê-los matava a
-# licitação antes do score:
-#   - "aprendizado de MÁQUINA", "TREINAMENTO e implantação de modelos",
-#     "SOFTWARE"/"NUVEM"/"SERVIDORES"/"INFRAESTRUTURA" de MLOps;
-#   - "AQUISIÇÃO de solução de IA com serviços" e "Sistema de REGISTRO DE PREÇOS"
-#     (formato comum dos editais de IA no PNCP — ex.: DETRAN-DF 16/2026);
-#   - pesquisa operacional / ciência de dados industrial: PRODUÇÃO, INDÚSTRIA,
-#     INVENTÁRIO, ABASTECIMENTO, ARMAZENAGEM, MANUTENÇÃO (preditiva), EQUIPAMENTOS;
-#   - forecasting setorial: ÁGUA, PETRÓLEO, SOLAR, AMBIENTAL, HOSPITAL, SEGUROS,
-#     SINISTROS, MENSAGENS (chatbots).
-# Removidos: Abastecimento, Abastecimentos, Ambientais, Ambiental, Aquisição, Aquisições, Armazenagem, Equipamento, Equipamentos, Hospitais, Hospital, Indústria, Indústrias, Infraestrutura, Inventário, Manutenção, Mensagem, Mensagens, Máquina, Máquinas, Nuvem, Petróleo, Produção, Registro de Preços, Seguro, Seguros, Servidor, Servidora, Servidoras, Servidores, Sinistro, Sinistros, Software, Solar, Solares, Treinamento, Treinamentos, Água, Águas.
-# O que for compra de produto/serviço genérico e passar por aqui é rebaixado
-# pelo LLM no score (ver LLM_SYS).
+# Revista em 19/10/2026. A lista herdada da origem (consultoria financeira, ~240
+# termos) eliminava 110 das 183 licitações no tema, inclusive "videomonitoramento
+# com inteligência artificial" (por "Placas"), "manutenção preditiva" (por
+# "Engenharia"/"Obra") e "integração de dados" (por "Licenciamento"). Agora o
+# filtro de TEMA vem antes (gold.filtrar_tema) e esta lista só tira o que nunca é
+# serviço de ML, IA, dados ou TI: obra e manutenção predial, mão de obra
+# terceirizada, bens de consumo e mobiliário, alimentação, saúde clínica,
+# veículos e combustível, viagens, eventos, ativos e seguros. Termos ambíguos
+# (Licença, Segurança, Engenharia, Produto, Evento, Placa, Transporte...) saíram.
+# E nunca elimina objeto com termo forte do núcleo (TEMAS): ver gold._objeto_sujo.
 PALAVRAS_EXCLUIR = [
-    "Engenharia", "Patrocínio", "Obra", "Sinalização", "Lotérica", "Lotéricas",
-    "Produto", "Produtos", "Vigilância", "Climatização", "Instalação", "Limpeza",
-    "Jardinagem", "Transporte", "Aeronave", "Licenciamento", "Cobertura do risco",
-    "Apólice", "Medicamento", "Medicamentos", "Café", "Cadeira", "Cadeiras",
-    "Passagem", "Passagens", "Aérea", "Aéreas", "Aéreo", "Aéreos", "Evento", "Eventos",
-    "Assistência", "Imóvel", "Imóveis", "Judicial", "Judiciais", "Acesso", "Acessos",
-    "Celular", "Celulares", "Locação", "Locações", "Médico", "Médicos", "Médica",
-    "Médicas", "Combustível", "Combustíveis", "Alimentício", "Alimentícios",
-    "Alimentícia", "Alimentícias", "Placa", "Placas", "Curso", "Cursos", "Palestra",
-    "Palestras", "Assinatura", "Assinaturas", "Patrimônio", "Patrimônios", "Espanhol",
-    "Espanhola", "Inscrição", "Inscrições", "Museu", "Museus", "Restauro", "Restauros",
-    "Remoção", "Remoções", "Colocação", "Colocações", "Restauração", "Restaurações",
-    "Newsletter", "Cofre", "Cofres", "Incêndio", "Incêndios", "Alarme", "Alarmes",
-    "Licença", "Licenças", "Elétrica", "Elétricas", "Elétrico", "Elétricos",
-    "Bebedouro", "Bebedouros", "Forno", "Fornos", "Poda", "Podas", "Árvore", "Árvores",
-    "Dell", "Revista", "Revistas", "Consórcio", "Consórcios", "Sanitário",
-    "Sanitários", "Sanitária", "Sanitárias", "Microfone", "Microfones", "Amplificador",
-    "Amplificadores", "Concessão", "Concessões", "Transmissão", "Transmissões",
-    "Alienação", "Alienações", "Pedagógico", "Pedagógicos", "Pedagógica",
-    "Pedagógicas", "Florestal", "Florestais", "Iluminação", "Rodoviário",
-    "Rodoviários", "Rodoviária", "Rodoviárias", "Escola", "Escolas", "Porto", "Portos",
-    "Portuário", "Portuários", "Portuária", "Portuárias", "Estádio", "Estádios",
-    "Arrendamento", "Arrendamentos", "Prisional", "Prisionais", "Pensão", "Pensões",
-    "Aeroporto", "Aeroportos", "Parque", "Parques", "Resíduo", "Resíduos", "Rodovia",
-    "Rodovias", "Metrô", "Cheque", "Cheques", "Veicular", "Veiculares", "Lance",
-    "Lances", "Publicidade", "Microfilmagem", "Cartão", "Cartões", "Perícia",
-    "Perícias", "Psicologia", "Recepcionista", "Recepcionistas", "Praga", "Pragas",
-    "Deslocamento", "Deslocamentos", "Brinde", "Brindes", "Promocional",
-    "Promocionais", "Impressão", "Impressões", "Formulário", "Formulários", "Estágio",
-    "Estágios", "Bateria", "Baterias", "Alimentação", "Prisão", "Prisões", "Montagem",
-    "Montagens", "Mobiliário", "Mobiliários", "Madeira", "Madeiras", "Mesa", "Mesas",
-    "Armário", "Armários", "Gaveteiro", "Gaveteiros", "Biombo", "Biombos", "Estofado",
-    "Estofados", "Estofada", "Estofadas", "Odontológico", "Odontológicos",
-    "Odontológica", "Odontológicas", "Pintura", "Pinturas", "Vacinação", "Vacinações",
-    "Advocatício", "Advocatícios", "Advocatícia", "Advocatícias", "Segurança",
-    "Seguranças", "Edifício", "Edifícios", "Bufê", "Bufês", "Buffet", "Buffets",
-    "Lavagem", "Lavagens", "Ar Condicionado", "Almoxarifado", "Almoxarifados",
-    "Telefonia", "Bobina", "Bobinas", "União", "Telecomunicações", "Desestatização",
-    "Desestatizações", "PPP", "Cessão", "Cessões", "Loteria", "Loterias", "Formalista",
-    "Formalistas", "Veículo", "Veículos", "Notebook", "Notebooks", "Clipping",
-    "Reforma", "Reformas", "Despachante", "Despachantes", "Aprendizagem", "Leiloeiro",
-    "Leiloeiros", "Confecção", "Confecções", "Motorista", "Motoristas", "Motoboy",
-    "Motoboys", "Carnê", "Carnês", "IPTU", "Óptica", "Ópticas", "Escritório",
-    "Escritórios", "TV", "TVs", "Frigobar", "Frigobares", "Congresso", "Congressos",
-    "Vaga", "Vagas", "Adoção", "Adoções", "Participação", "Participações",
-    "Colaborador", "Colaboradores", "Ouvido", "Ouvidos", "Camisa", "Camisas",
-    "Camiseta", "Camisetas", "Bolsão", "Bolsões", "Mercearia", "Mercearias", "Caderno",
-    "Cadernos", "Cabo", "Cabos", "Papel", "Papéis", "Advocacia", "Doação", "Doações",
-    "Cobertura", "Coberturas", "Tradução", "Traduções", "Coronavírus", "Carimbo",
-    "Carimbos", "Borracha", "Borrachas", "Tinta", "Tintas", "Móvel", "Móveis", "Vale",
-    "Vales", "Livro", "Livros", "Garrafa", "Garrafas", "Ambulatorial", "Ambulatoriais",
-    "Corrida", "Corridas", "Artística", "Artísticas", "Artístico", "Artísticos",
-    "Hidrostático", "Hidrostáticos", "Ginástica", "Laboral", "Laborais", "Ciclismo",
-    "Caminhada", "Caminhadas", "Jornal", "Jornais", "Recarga", "Recargas",
-    "Refrigerante", "Refrigerantes", "Veiculação", "Veiculações", "Fotovoltaico",
-    "Fotovoltaica", "Fotovoltaicos", "Fotovoltaicas", "Ar-condicionado", "Boné",
-    "Bonés", "Mochila", "Mochilas", "Adaptador", "Adaptadores", "HDMI",
+    # obra e manutenção predial
+    "Execução de Obra", "Execução de Obras", "Mão de Obra", "Reforma", "Reformas", "Pavimentação", "Recapeamento", "Pintura",
+    "Alvenaria", "Climatização", "Ar Condicionado", "Ar-condicionado", "Elevador",
+    "Elevadores", "Iluminação Pública", "Fotovoltaico", "Fotovoltaica",
+    # mão de obra terceirizada e serviços gerais
+    "Limpeza", "Conservação Predial", "Jardinagem", "Roçada", "Poda", "Podas",
+    "Dedetização", "Desratização", "Vigilância Armada", "Vigilância Desarmada",
+    "Vigilância Patrimonial", "Serviço de Portaria", "Recepcionista", "Recepcionistas",
+    "Copeiragem", "Lavanderia", "Lavagem",
+    # bens de consumo, mobiliário e material
+    "Mobiliário", "Mobiliários", "Cadeira", "Cadeiras", "Armário", "Armários",
+    "Gaveteiro", "Gaveteiros", "Biombo", "Biombos", "Estofado", "Estofados",
+    "Material de Expediente", "Material de Limpeza", "Material Escolar", "Uniforme",
+    "Uniformes", "Fardamento", "Brinde", "Brindes", "Bebedouro", "Bebedouros",
+    "Pneu", "Pneus", "Bobina", "Bobinas",
+    # hardware (o tema inclui software e serviço de TI, não compra de máquina)
+    "Microcomputador", "Microcomputadores", "Computadores", "Notebook", "Notebooks",
+    "Desktop", "Desktops", "Impressora", "Impressoras", "Toner", "Toners", "Cartucho",
+    "Cartuchos", "Nobreak", "Nobreaks", "Monitores", "Periféricos",
+    # alimentação
+    "Gêneros Alimentícios", "Alimentício", "Alimentícios", "Merenda", "Café",
+    "Refeição", "Refeições", "Bufê", "Buffet", "Coffee Break",
+    # saúde clínica e farmácia
+    "Medicamento", "Medicamentos", "Odontológico", "Odontológicos", "Odontológica",
+    "Vacinação", "Exames Laboratoriais", "Órtese", "Prótese",
+    # veículos, combustível e viagens
+    "Combustível", "Combustíveis", "Locação de Veículos", "Aquisição de Veículos",
+    "Passagem Aérea", "Passagens Aéreas", "Agenciamento de Viagens",
+    # ativos, seguros e publicidade
+    "Leilão", "Alienação", "Arrendamento", "Desestatização", "Concessão de Uso",
+    "Lotérica", "Lotéricas", "Apólice", "Patrocínio", "Publicidade", "Clipping",
 ]
 
 # Filtro pelo TEXTO DOS ANEXOS (PDF inteiro do edital). Desligado: com o texto
@@ -609,6 +580,10 @@ TERMOS_TI = [
     "chatbot", "assistente virtual", "atendimento virtual", "algoritmo",
     "solucao inovadora", "solucoes inovadoras", "lei complementar 182", "cpsi",
     "internet das coisas", "iot", "sensoriamento remoto", "geoprocessamento",
+    # analytics e BI (entram no núcleo do funil desde 19/10/2026)
+    "business intelligence", "power bi", "analytics", "dashboard", "dashboards",
+    "painel de indicadores", "paineis de indicadores", "paineis gerenciais",
+    "visualizacao de dados", "inteligencia de dados", "inteligencia analitica",
 ]
 
 # PNCP — todas as contratações de qualquer órgão (federal, estadual, municipal),
