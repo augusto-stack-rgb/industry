@@ -166,6 +166,9 @@ gancho. Primeira leva sugerida: vagas, diferenças na RF e diferenças no site.
 
 - [ ] Rotina do Claude pela API que lê os dados das pipelines implementadas, identifica
       possíveis ganchos e adiciona uma notificação nova no home.
+- [ ] Pensar em mais ganchos além da lista acima.
+- [ ] Demo de RAG sobre o site da empresa: um assistente que responde sobre o conteúdo e os
+      PDFs do próprio site, para mostrar o pacote de RAG com os dados dela.
 
 ## Decisões em aberto (do Augusto)
 
