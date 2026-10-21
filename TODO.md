@@ -142,16 +142,18 @@ dois pacotes. Nenhum contato é feito pela pipeline.
 
 Fontes levantadas em 20/10/2026, da mais forte e viável para a menos:
 
-- [ ] Vagas que revelam dor (BI, PCP, controladoria, qualidade, documentação, assistência
+- [x] (20/10, `ganchos_vagas`: LinkedIn e Gupy; rende pouco nesse porte) Vagas que revelam dor (BI, PCP, controladoria, qualidade, documentação, assistência
       técnica, SAC técnico): Gupy, Indeed, Catho, Vagas.com e o "trabalhe conosco" do site.
       Casar com as vagas que a pipeline de vagas já coleta, por CNPJ ou nome. Os dois pacotes.
-- [ ] Diferenças mensais na base da RF: filial nova, aumento de capital, CNAE novo, sócio ou
+- [x] (20/10, `ganchos_rf` pela minhareceita.org e `ganchos_filiais` pelos zips da RF) Diferenças mensais na base da RF: filial nova, aumento de capital, CNAE novo, sócio ou
       administrador novo. Dashboard.
-- [ ] Diferenças no site: PDFs, manuais e fichas novos, linha de produto nova, unidades,
+- [x] (20/10, `ganchos_sites`: sitemap e Last-Modified dos PDFs) Diferenças no site: PDFs, manuais e fichas novos, linha de produto nova, unidades,
       e-commerce, área do cliente ou do representante. Releitura do cache de páginas. RAG e
       dashboard.
 - [ ] Contratos públicos ganhos, por CNPJ, no PNCP (já coletado pelas licitações).
-- [ ] Financiamento: dados abertos do BNDES por CNPJ, BRDE, Finep, Embrapii, Fapergs, Fapesc.
+- [x] (20/10, `ganchos_financiamento`: só BNDES) Financiamento: dados abertos do BNDES por CNPJ.
+- [ ] Financiamento fora do BNDES: Finep, BRDE, Embrapii, Fapergs e Fapesc não publicam operações
+      por CNPJ em dados abertos; seria raspagem de resultados de editais em PDF.
 - [ ] Certificação ou registro novo: ISO 9001, Inmetro, Anvisa, MAPA. RAG.
 - [ ] Expositores de feiras do setor (Mercopar, Fimec, Febratex, Expointer, Fenatran). RAG.
 - [ ] Notícias regionais pelo nome: Google News RSS, Pioneiro, NSC, Simecs, Acij.
