@@ -5,11 +5,12 @@
     ganchos_sites          semanal   sitemap e PDFs do site
     ganchos_filiais        mensal    zips de Estabelecimentos da RF (~5 GB de passagem pelo HD)
     ganchos_financiamento  mensal    dados abertos do BNDES
+    ganchos_inpi           mensal    marcas e patentes depositadas (dados abertos do INPI)
 """
 import dagster as dg
 
 from ..supabase import Supabase
-from . import comum, filiais, financiamento, rf, sites, vagas
+from . import comum, filiais, financiamento, inpi, rf, sites, vagas
 
 SEMANAL = '0 6 * * 1'
 MENSAL = '0 3 5 * *'   # dia 5: a RF e o BNDES ja publicaram o mes
@@ -38,14 +39,17 @@ ganchos_filiais = _asset('ganchos_filiais', filiais, MENSAL,
 ganchos_financiamento = _asset('ganchos_financiamento', financiamento, MENSAL,
                                'Operações de financiamento do BNDES contratadas nos últimos 24 meses.')
 
-ASSETS = [ganchos_vagas, ganchos_rf, ganchos_sites, ganchos_filiais, ganchos_financiamento]
+ganchos_inpi = _asset('ganchos_inpi', inpi, MENSAL,
+                      'Marcas e patentes depositadas pelas empresas no INPI, sinal de linha de produto nova.')
+
+ASSETS = [ganchos_vagas, ganchos_rf, ganchos_sites, ganchos_filiais, ganchos_financiamento, ganchos_inpi]
 
 ganchos_semanal_job = dg.define_asset_job(
     'ganchos_semanal', selection=[ganchos_vagas, ganchos_rf, ganchos_sites],
     description='Ganchos semanais dos prospects clientes: vagas, Receita e sites.')
 ganchos_mensal_job = dg.define_asset_job(
-    'ganchos_mensal', selection=[ganchos_filiais, ganchos_financiamento],
-    description='Ganchos mensais dos prospects clientes: filiais na Receita e financiamentos do BNDES.')
+    'ganchos_mensal', selection=[ganchos_filiais, ganchos_financiamento, ganchos_inpi],
+    description='Ganchos mensais dos prospects clientes: filiais na Receita, financiamentos do BNDES e marcas e patentes no INPI.')
 JOBS = [ganchos_semanal_job, ganchos_mensal_job]
 SCHEDULES = [
     dg.ScheduleDefinition(job=ganchos_semanal_job, cron_schedule=SEMANAL,

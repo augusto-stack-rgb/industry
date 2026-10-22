@@ -168,7 +168,21 @@ gancho. Primeira leva sugerida: vagas, diferenças na RF e diferenças no site.
 
 - [ ] Rotina do Claude pela API que lê os dados das pipelines implementadas, identifica
       possíveis ganchos e adiciona uma notificação nova no home.
-- [ ] Pensar em mais ganchos além da lista acima.
+- [ ] Pensar em mais ganchos além da lista acima. Levantados em 22/10/2026 (o que consultorias e
+      vendas B2B costumam usar: eventos-gatilho, sinais de intenção e canais):
+  - [x] Marca ou patente depositada no INPI (22/10, `ganchos_inpi`, dados abertos do INPI).
+  - [ ] Sócio pessoa jurídica entrando (aquisição ou investimento): virar tipo próprio na fonte da
+        Receita, hoje cai como sócio novo comum.
+  - [ ] Licença ambiental de instalação ou ampliação: Fepam (RS), IMA (SC), IAT (PR).
+  - [ ] Mudança regulatória do setor (reforma tributária, NR-1, regulamento europeu de
+        desmatamento, imposto de carbono europeu): gancho por setor, não por empresa.
+  - [ ] Prêmios e rankings regionais (Maiores e Melhores, prêmios da Fiergs e da Fiesc).
+  - [ ] Época de orçamento (outubro e novembro): mais quando abordar do que gancho.
+  - [ ] Sinais de intenção: conteúdo próprio (diagnóstico de maturidade de dados, estudo
+        regional do setor) e ver quem interage.
+  - Descartados pelo Augusto: implantação de ERP (casos de sucesso de Totvs, Sankhya etc.) e
+    ferramentas detectadas no site. Canais (Sebraetec, Senai e federações, parceiros de ERP,
+    contadores, associações) não fazem sentido como pipeline.
 - [ ] Demo de RAG sobre o site da empresa: um assistente que responde sobre o conteúdo e os
       PDFs do próprio site, para mostrar o pacote de RAG com os dados dela.
 

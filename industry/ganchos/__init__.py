@@ -10,4 +10,5 @@ fonte contata a empresa: so le dados publicos.
     filiais        filial aberta, lida dos zips mensais da Receita
     sites          paginas e PDFs novos ou atualizados no site
     financiamento  operacoes do BNDES
+    inpi           marcas e patentes depositadas
 """
