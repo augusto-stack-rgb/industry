@@ -2,11 +2,13 @@
 semana em dadosabertos.inpi.gov.br). Marca ou patente nova costuma ser linha de
 produto nova: mais catalogo e mais documentacao tecnica, o que puxa o RAG.
 
-Os arquivos sao grandes (o de classes das marcas passa de 7 GB), entao sao lidos
-em streaming e so as linhas das empresas do universo ficam, sem gravar em disco.
+Os arquivos sao grandes (os de marcas passam de 1 GB), entao sao lidos em
+streaming e so as linhas das empresas do universo ficam, sem gravar em disco. O
+arquivo de classes (7,6 GB) fica de fora: o nome da marca ja diz a linha.
 Os depositantes trazem o CNPJ, entao o casamento e exato.
 
-  marca_depositada    pedido de marca depositado nos ultimos 12 meses
+  marca_depositada    marca depositada nos ultimos 12 meses (um gancho por marca
+                      e dia, juntando os pedidos de cada classe)
   patente_depositada  pedido de patente ou modelo de utilidade depositado nos
                       ultimos 24 meses (a publicacao sai ~18 meses depois do deposito)
 """
@@ -51,7 +53,7 @@ def coletar(supabase, log) -> dict:
     hoje = date.today()
     ganchos = []
     with httpx.Client(timeout=httpx.Timeout(60, read=300), follow_redirects=True) as cli:
-        # marcas: depositantes -> processos das empresas -> datas -> classes
+        # marcas: depositantes -> processos das empresas -> datas
         tem_cnpj = lambda l: any(c in l for c in emps)   # noqa: E731
         marcas = {d['numero_inpi']: d['cnpj_cpf_titular']
                   for d in _linhas(cli, 'marcas/MARCAS_DEPOSITANTES.csv', tem_cnpj)
@@ -62,19 +64,20 @@ def coletar(supabase, log) -> dict:
             dep = d['data_deposito']
             if dep and date.fromisoformat(dep) >= hoje - timedelta(days=365):
                 recentes[d['numero_inpi']] = d
-        classes = {}
-        if recentes:
-            for d in _linhas(cli, 'marcas/MARCAS_CLASSIFICACOES_NICE.csv', lambda l: _num(l) in recentes):
-                classes.setdefault(d['numero_inpi'], set()).add(
-                    (d['classe_nice'].strip(), (d['especificacao'] or '').strip()[:140]))
+        # cada classe e um pedido separado: agrupa a mesma marca no mesmo dia
+        grupos = {}
         for n, d in recentes.items():
-            c = marcas[n]
-            espec = '; '.join(f'classe {cl}' + (f', {es.lower()}' if es else '') for cl, es in sorted(classes.get(n, ())))
+            nome = d['elemento_nominativo'] or 'figurativa'
+            grupos.setdefault((marcas[n], nome.upper(), d['data_deposito']), []).append((n, d))
+        for (c, _, dep), itens in grupos.items():
+            n, d = itens[0]
+            nome = d['elemento_nominativo'] or 'figurativa'
             ganchos.append(comum.gancho(
-                c, FONTE, 'marca_depositada', 'rag', d['data_deposito'],
-                f'Depositou a marca {d["elemento_nominativo"] or "figurativa"} em '
-                f'{date.fromisoformat(d["data_deposito"]).strftime("%d/%m/%Y")}' + (f' ({espec})' if espec else ''),
-                BUSCA_MARCA.format(n), n, natureza=d['descricao_natureza'], situacao=d['descricao_situacao']))
+                c, FONTE, 'marca_depositada', 'rag', dep,
+                f'Depositou a marca {nome} em {date.fromisoformat(dep).strftime("%d/%m/%Y")}'
+                + (f', em {len(itens)} classes de produto ou serviço' if len(itens) > 1 else ''),
+                BUSCA_MARCA.format(n), f'{c}|{nome.upper()}|{dep}', processos=[x for x, _ in itens],
+                natureza=d['descricao_natureza']))
 
         # patentes: depositantes -> processos -> datas -> titulos
         patentes = {d['numero_inpi']: d['cgccpfdepositante']
