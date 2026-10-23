@@ -30,16 +30,33 @@ def nucleo(nome: str | None) -> set[str]:
     return {p for p in norm(nome).split() if p not in GENERICAS and len(p) > 1}
 
 
+# palavras de ramo: sozinhas nao identificam ninguem ("nutricao animal" casa
+# com qualquer fabricante de racao)
+SETORIAIS = {'nutricao', 'animal', 'alimentos', 'alimenticios', 'transportes', 'transportadora', 'logistica',
+             'plasticos', 'metalurgica', 'metais', 'equipamentos', 'maquinas', 'pecas', 'componentes',
+             'quimica', 'quimicos', 'produtos', 'tecnologia', 'engenharia', 'construcoes', 'construtora',
+             'materiais', 'eletricos', 'automacao', 'agricola', 'agro', 'textil', 'moveis', 'embalagens',
+             'combustiveis', 'distribuicao', 'atacado', 'atacadista', 'participacoes', 'holding'}
+
+
 def mesma_empresa(achado: str, *nomes: str | None) -> bool:
     """O nome achado (vaga, financiamento) e de uma das grafias da empresa?
     Exige todas as palavras do nucleo de uma das grafias, para nao confundir
-    Aeromob com Aeromot."""
+    Aeromob com Aeromot, e ao menos uma palavra que nao seja de ramo."""
     a = nucleo(achado)
     if not a:
         return False
     for n in nomes:
         nn = nucleo(n)
-        if nn and (nn <= a or (a <= nn and len(a) >= 2)):
+        if not nn:
+            continue
+        comum_ = nn & a
+        if not (comum_ - SETORIAIS):
+            # so palavras de ramo em comum: exige o nome inteiro igual
+            if norm(n) and norm(n) == norm(achado):
+                return True
+            continue
+        if nn <= a or (a <= nn and len(a) >= 2):
             return True
     return False
 
