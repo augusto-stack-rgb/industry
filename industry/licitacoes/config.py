@@ -741,3 +741,7 @@ FONTES_INOVACAO = {
     "CatalisaGov (Sebrae) - Consultas públicas",
     "BNDES - Chamadas públicas de inovação (CPSI)",
 }
+
+# PNCP — CPSI com proposta aberta, sem janela de publicação (pncp_cpsi.py).
+PNCP_CPSI_TERMOS = ["solução inovadora", "CPSI", "Lei Complementar 182",
+                    "marco legal das startups", "contrato público para solução inovadora"]

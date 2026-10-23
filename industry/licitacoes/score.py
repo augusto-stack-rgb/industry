@@ -58,12 +58,20 @@ def _zero_shot(textos: list[str]) -> tuple[dict[str, list[float]], list[float]]:
     if not ZS_ATIVO:
         logger.info("[zs] zero-shot desligado (LICITACOES_ZEROSHOT=0)")
         return {t: [None] * len(textos) for t in TEMAS}, [None] * len(textos)
-    from transformers import pipeline
-    import torch
+    try:
+        from transformers import pipeline
+        import torch
 
-    dev = 0 if torch.cuda.is_available() else -1
-    logger.info(f"[zs] carregando {ZS_MODEL} (device={'GPU' if dev == 0 else 'CPU'})")
-    zs = pipeline("zero-shot-classification", model=ZS_MODEL, device=dev)
+        dev = 0 if torch.cuda.is_available() else -1
+        logger.info(f"[zs] carregando {ZS_MODEL} (device={'GPU' if dev == 0 else 'CPU'})")
+        zs = pipeline("zero-shot-classification", model=ZS_MODEL, device=dev)
+    except Exception as e:  # noqa: BLE001 — ambiente quebrado não pode parar o score
+        # Ex.: 20/10/2026 um pip install de OCR subiu o numpy para 2.x e o torch
+        # 2.2 deixou de importar. O sinal fica ausente e o score renormaliza
+        # sobre keyword + LLM, como com ZS_ATIVO=False.
+        logger.warning(f"[zs] zero-shot indisponível ({type(e).__name__}: {str(e)[:120]}); "
+                       f"seguindo sem o sinal")
+        return {t: [None] * len(textos) for t in TEMAS}, [None] * len(textos)
     labels = [TEMAS[t]["label"] for t in TEMAS] + list(ZS_LABELS_EXTRA)
     scores = {t: [0.0] * len(textos) for t in TEMAS}
     extra_max = [0.0] * len(textos)
@@ -341,7 +349,7 @@ def calcular_gold_filtros(df_gold: pd.DataFrame, usar_llm: bool = True) -> pd.Da
     # também não dá para o zero-shot — sobra a keyword, que é casamento exato de
     # termo e continua válida em texto curto.
     def _zs(i):
-        if not ZS_ATIVO or _texto_insuficiente(textos[i]):
+        if not ZS_ATIVO or zs_extra[i] is None or _texto_insuficiente(textos[i]):
             return None
         return max(max(float(df[f"tag_zs_{t}"].iloc[i] or 0) for t in TEMAS),
                    float(zs_extra[i]))

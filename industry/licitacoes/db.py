@@ -534,3 +534,45 @@ def apagar_gold_filtros(ids: list[str]) -> int:
 def _read_df(sql: str) -> pd.DataFrame:
     with get_engine().connect() as conn:
         return pd.read_sql(sql, conn)
+
+
+def completar_bronze(df: pd.DataFrame) -> int:
+    """Preenche, em linhas que JÁ existem no bronze, o prazo de proposta vazio e a
+    marca de pessoa física quando a coleta de agora traz o dado. Ex.: o CPSI da
+    SEFAZ-PI entrou pelo pncp.py sem prazo e o pncp_cpsi.py traz o encerramento."""
+    if df is None or df.empty or "id_unificado" not in df.columns:
+        return 0
+    from sqlalchemy import text
+    cols = [c for c in ("data_encerramento_proposta", "pessoa_fisica") if c in df.columns]
+    if not cols:
+        return 0
+    linhas = []
+    for _, r in df.iterrows():
+        enc = _safe(r.get("data_encerramento_proposta")).strip()
+        pf = _safe(r.get("pessoa_fisica")).strip().lower()
+        if enc or pf == "sim":
+            linhas.append({"id": r["id_unificado"], "enc": enc or None, "pf": pf == "sim"})
+    if not linhas:
+        return 0
+    sql = text(
+        f"UPDATE {SCHEMA}.{TB_BRONZE} SET "
+        f"data_encerramento_proposta = coalesce(nullif(data_encerramento_proposta, ''), :enc), "
+        f"pessoa_fisica = CASE WHEN :pf THEN 'sim' ELSE pessoa_fisica END "
+        f"WHERE id_unificado = :id AND (coalesce(data_encerramento_proposta, '') = '' AND :enc IS NOT NULL "
+        f"OR (:pf AND coalesce(pessoa_fisica, '') <> 'sim'))")
+    with get_engine().begin() as conn:
+        n = sum(conn.execute(sql, p).rowcount for p in linhas)
+    if n:
+        logger.info(f"[bronze] {n} linha(s) existentes completadas (prazo ou pessoa física)")
+    return n
+
+
+def bronze_abertos_fora_da_silver() -> pd.DataFrame:
+    """Linhas do bronze com prazo de proposta de hoje em diante que nunca foram
+    para a silver: o corte de recência as tirou antes de se saber o prazo."""
+    return _read_df(
+        f"SELECT b.* FROM {SCHEMA}.{TB_BRONZE} b "
+        f"  LEFT JOIN {SCHEMA}.{TB_SILVER} s ON s.id_unificado = b.id_unificado "
+        f" WHERE s.id_unificado IS NULL "
+        f"   AND b.data_encerramento_proposta ~ '^\d{{4}}-\d{{2}}-\d{{2}}' "
+        f"   AND left(b.data_encerramento_proposta, 10)::date >= current_date")

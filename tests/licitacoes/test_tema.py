@@ -80,6 +80,29 @@ s2 = bronze_para_silver(pd.DataFrame({"id_unificado": ["x"], "fonte": [cp.FONTE_
 checar("portal de inovação marca no_tema", s2["no_tema"].tolist() == [True])
 checar("fontes de inovação registradas", cp.FONTE_GOVTECH in FONTES_INOVACAO and cp.FONTE_COPASA in FONTES_INOVACAO)
 
+print("\n── CPSI e prazo aberto")
+from datetime import date, timedelta  # noqa: E402
+from industry.licitacoes.bronze import filtrar_recentes  # noqa: E402
+from industry.licitacoes.pncp_cpsi import _linha as linha_cpsi  # noqa: E402
+from industry.licitacoes.termos import e_cpsi  # noqa: E402
+
+checar("CPSI sem termo de tema conta como tema",
+       e_cpsi("Contratação do teste de solução integrada de qualificação profissional"))
+checar("LC 182 conta como tema", e_cpsi("licitação especial (Lei Complementar nº 182)"))
+checar("objeto comum não é CPSI", not e_cpsi("Aquisição de cadeiras"))
+velho = (date.today() - timedelta(days=25)).isoformat()
+futuro = (date.today() + timedelta(days=10)).isoformat()
+df = pd.DataFrame({"id_unificado": ["aberto", "fechado"], "data": [velho, velho],
+                   "data_encerramento_proposta": [futuro, ""], "run_date": [velho, velho]})
+checar("publicado há 25 dias mas aberto passa a recência",
+       filtrar_recentes(df)["id_unificado"].tolist() == ["aberto"])
+it = {"numero_controle_pncp": "06553556000191-1-000023/2026", "item_url": "/compras/06553556000191/2026/23",
+      "description": "CPSI para contratação de pessoa física ou jurídica", "data_fim_vigencia": "2026-11-05T18:00:00"}
+ln = linha_cpsi(it)
+checar("CPSI: link público", ln["link"] == "https://pncp.gov.br/app/editais/06553556000191/2026/23", ln["link"])
+checar("CPSI: aceita pessoa física", ln["pessoa_fisica"] == "sim")
+checar("CPSI: prazo", ln["data_encerramento_proposta"].startswith("2026-11-05"))
+
 print("\n" + "=" * 72)
 if FALHAS:
     print(f"{len(FALHAS)} falha(s): {FALHAS}")

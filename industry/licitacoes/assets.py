@@ -68,6 +68,8 @@ FONTES = [
           "CAIXA SICVE - Sistema de Compras Eletronicas", selenium=True),
     # fontes gerais (qualquer órgão), não só bancos
     Fonte("pncp_abertas", "pncp_abertas", "collect_pncp_abertas", "PNCP", pncp=True),
+    # CPSI aberto publicado há mais de 7 dias (o pncp_abertas só vê os recentes)
+    Fonte("pncp_cpsi", "pncp_cpsi", "collect_pncp_cpsi", "PNCP", pncp=True),
     Fonte("querido_diario", "querido_diario", "collect_querido_diario",
           "Querido Diário - Diários oficiais municipais"),
     Fonte("bndes_inovacao", "bndes_inovacao", "collect_bndes_inovacao",
@@ -188,6 +190,12 @@ def licitacoes_bronze(context: dg.AssetExecutionContext) -> dg.Output[pd.DataFra
         except Exception as e:  # noqa: BLE001
             context.log.warning(f"[bronze] falha lendo {m.get('fonte')}: {str(e)[:120]}")
     novos = bronze_mod.inserir_bronze(dfs, date.today())
+    # abertos que já estavam no bronze e o corte de recência barrou antes
+    atrasados = bronze_mod.db.bronze_abertos_fora_da_silver()
+    if not atrasados.empty:
+        context.log.info(f"[bronze] {len(atrasados)} aberto(s) do bronze voltam para a silver")
+        novos = pd.concat([novos, atrasados[[c for c in novos.columns if c in atrasados.columns]]],
+                          ignore_index=True).drop_duplicates(subset=["id_unificado"])
     novos = _como_texto(bronze_mod.filtrar_recentes(novos))
     return dg.Output(novos, metadata={"novos": len(novos)})
 

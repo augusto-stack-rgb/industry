@@ -206,6 +206,10 @@ def inserir_bronze(dfs_por_fonte: list[pd.DataFrame], run_date) -> pd.DataFrame:
     df["id_unificado"] = ids_lote
     df["run_date"] = run_date
 
+    # Linha que já existe e voltou com prazo ou "aceita pessoa física" que não
+    # tinha: o dado entra (o bronze é first-seen, mas campo vazio não é dado).
+    db.completar_bronze(df)
+
     # dedup interno + contra o que já está no banco
     df = df.drop_duplicates(subset=["row_hash"], keep="first")
     existentes = db.existing_bronze_hashes(db.get_engine())
@@ -323,7 +327,15 @@ def filtrar_recentes(df: pd.DataFrame, dias: int = JANELA_BRONZE_DIAS) -> pd.Dat
         return df
     hoje = date.today()
     limite = dias - 1
-    mask = df.apply(lambda r: 0 <= (hoje - _data_aparicao(r, hoje)).days <= limite, axis=1)
+
+    def _aberta(r) -> bool:
+        # prazo de proposta conhecido e futuro passa, publicada quando for: CPSI
+        # fica aberto 30 dias ou mais (a SEFAZ-PI sumia por ter saído 3 semanas antes)
+        d = db.to_date(r.get("data_encerramento_proposta"))
+        return bool(d) and date.fromisoformat(d) >= hoje
+
+    mask = df.apply(lambda r: _aberta(r) or 0 <= (hoje - _data_aparicao(r, hoje)).days <= limite,
+                    axis=1)
     out = df[mask].copy()
     logger.info(
         f"[recencia] {len(df)} -> {len(out)} (janela {dias}d, hoje/ontem; "
