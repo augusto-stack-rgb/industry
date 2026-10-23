@@ -38,8 +38,10 @@ def extrair(basicos: set[str], log) -> tuple[str, Path]:
     mes = baixar.snapshots()[-1]
     destino = PASTA / mes
     final = destino / 'filiais.parquet'
-    if final.exists():
+    alvo_arq = destino / 'alvo.txt'   # CNPJs basicos que o parquet cobre
+    if final.exists() and alvo_arq.exists() and basicos <= set(alvo_arq.read_text().split()):
         return mes, final
+    final.unlink(missing_ok=True)   # empresas novas no universo: extrai de novo
     destino.mkdir(parents=True, exist_ok=True)
     arquivos = dict(n for n in baixar.listar(baixar.RAIZ + mes + '/') if n[0].startswith('Estabelecimentos'))
     con = duckdb.connect()
@@ -63,6 +65,7 @@ def extrair(basicos: set[str], log) -> tuple[str, Path]:
                 f"to '{final.as_posix()}' (format parquet)")
     for p in destino.glob('Estabelecimentos*.parquet'):
         p.unlink()
+    alvo_arq.write_text(' '.join(sorted(basicos)))
     return mes, final
 
 
