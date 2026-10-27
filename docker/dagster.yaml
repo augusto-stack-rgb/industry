@@ -4,6 +4,9 @@ storage:
       hostname: postgres
       port: 5432
       db_name: dagster
+      # SQLAlchemy 2.1 usa o psycopg 3 em "postgresql://", e ele não aceita
+      # parâmetro no NOTIFY que o dagster-postgres manda a cada evento.
+      scheme: postgresql+psycopg2
       username:
         env: POSTGRES_USER
       password:

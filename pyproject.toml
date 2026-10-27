@@ -9,7 +9,9 @@ dependencies = [
     "duckdb",
     # licitacoes / noticias (portadas do bateleur-pipelines)
     "pandas",
-    "sqlalchemy>=2",
+    # 2.1 troca o driver de "postgresql://" para o psycopg 3, que não infere o tipo
+    # de parâmetros como ":enc IS NOT NULL" (o SQL do projeto supõe psycopg2)
+    "sqlalchemy>=2,<2.1",
     "psycopg2-binary",
     "requests",
     "httpx",
