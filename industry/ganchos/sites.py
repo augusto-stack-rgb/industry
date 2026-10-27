@@ -23,7 +23,8 @@ MAX_SITEMAPS = 12
 MAX_PDFS = 40
 TIPOS = {   # tipo de pagina -> (regex na URL, pacote, nome no texto)
     'produtos': (r'produto|product|catalog|cat[aá]logo|linha|/loja/|/shop/', 'ambos', 'produtos e catálogo'),
-    'documentos': (r'download|manual|ficha|document|norma|certifica|boletim|fispq|datasheet', 'rag', 'documentos e downloads'),
+    'documentos': (r'download|manual|ficha|document|norma|certifica|boletim|fispq|datasheet|publica[cç]|artigo|informativ|'
+                   r'jurisprud|legisla|exame|preparo|especialidade|procedimento|laudo|ensaio', 'rag', 'documentos, publicações e serviços'),
     'unidades': (r'unidade|filia|onde.?estamos|representante|distribuidor|revenda|lojas', 'dashboard', 'unidades e representantes'),
     'noticias': (r'noticia|news|blog|imprensa|novidade|lancamento|lan[cç]amento', 'ambos', 'notícias e lançamentos'),
 }

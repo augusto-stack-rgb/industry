@@ -66,7 +66,7 @@ def empresas(supabase: Supabase) -> list[dict]:
     with supabase.conectar() as c:
         c.row_factory = dict_row
         return c.execute("""
-            select e.cnpj, e.razao_social, e.nome_fantasia, e.site_url, e.uf, e.municipio,
+            select e.cnpj, e.razao_social, e.nome_fantasia, e.site_url, e.uf, e.municipio, e.segmento,
                    a.pacote, a.nota
               from enriquecimento e left join clientes_avaliacao a using (cnpj)
              where e.site_encontrado and e.site_url is not null

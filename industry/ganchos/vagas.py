@@ -31,11 +31,27 @@ RAG = re.compile(
     r'(qualidade|sgq|iso ?9001|documenta[cç][aã]o|assist[eê]ncia t[eé]cnica|suporte t[eé]cnico|\bsac\b|'
     r'p[oó]s.?vendas?|engenharia de aplica|aplica[cç][aã]o t[eé]cnica|t[eé]cnico de campo|treinamento t[eé]cnico|'
     r'regulat[oó]ri|assuntos regulat|normas t[eé]cnicas|atendimento t[eé]cnico)', re.I)
+# cargos que revelam a dor em cada setor, alem dos gerais acima
+# (espelha `vagas` de scripts/receita_federal/perfis_setor.py)
+POR_SETOR = {
+    'advocacia': {'rag': r'paralegal|controladoria jur[ií]dica|assistente jur[ií]dico|analista jur[ií]dico|estagi[aá]rio de direito',
+                  'dashboard': r'controladoria jur[ií]dica|gest[aã]o de (processos|contencioso)|legal ops'},
+    'contabilidade': {'rag': r'analista (fiscal|cont[aá]bil|tribut[aá]rio)|departamento pessoal|assistente fiscal',
+                      'dashboard': r'bpo|controller|analista financeiro'},
+    'engenharia': {'rag': r'projetista|engenheiro (de projetos|civil|eletricista|mec[aâ]nico)|inspetor|t[eé]cnico em edifica',
+                   'dashboard': r'planejamento|pmo|controle de projetos'},
+    'laboratorios': {'rag': r'biom[eé]dic|t[eé]cnico de laborat|analista de laborat|garantia da qualidade',
+                     'dashboard': r'faturamento|conv[eê]nio|glosa'},
+    'clinicas': {'rag': r'recepcionista|atendimento ao paciente|enfermeir',
+                 'dashboard': r'faturamento|conv[eê]nio|glosa'},
+}
 ATS_GUPY = re.compile(r'https?://([a-z0-9-]+)\.gupy\.io', re.I)
 
 
-def classificar(titulo: str) -> str | None:
-    d, r = bool(DASHBOARD.search(titulo)), bool(RAG.search(titulo))
+def classificar(titulo: str, segmento: str | None = None) -> str | None:
+    extra = POR_SETOR.get(segmento or '', {})
+    d = bool(DASHBOARD.search(titulo)) or bool(extra.get('dashboard') and re.search(extra['dashboard'], titulo, re.I))
+    r = bool(RAG.search(titulo)) or bool(extra.get('rag') and re.search(extra['rag'], titulo, re.I))
     return 'ambos' if d and r else 'dashboard' if d else 'rag' if r else None
 
 
@@ -101,7 +117,7 @@ def coletar(supabase, log, pausa: float = 4.0) -> dict:
             vistas = {v['id'] for v in vagas}
             estado[e['cnpj']] = {'abertas': len(vistas), 'em': date.today().isoformat()}
             for v in {v['id']: v for v in vagas}.values():
-                pac = classificar(v['titulo'])
+                pac = classificar(v['titulo'], e.get('segmento'))
                 if pac:
                     ganchos.append(comum.gancho(
                         e['cnpj'], FONTE, 'vaga_dados' if pac == 'dashboard' else 'vaga_documentos' if pac == 'rag'
