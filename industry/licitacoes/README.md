@@ -65,6 +65,14 @@ licitacoes_coleta_<fonte> (20) → bronze → silver → gold → gold_filtros �
   disputa acontece e a lista de anexos. No PNCP vem do detalhe, dos itens e dos arquivos
   da contratação; nas outras fontes, do que o coletor trouxe. Sem valor estimado, baixa o
   PDF do edital e procura "valor estimado/global/máximo ... R$" (`valor_origem = edital`).
+- **Nota técnica e quem concorre** (`nota_tecnica.py` → `licitacoes.nota_tecnica`, sem
+  LLM): lê o edital de cada licitação aberta e pontuada (PDF, zip, ou os documentos por
+  token do portal da Cemig) e grava a divisão da nota técnica entre histórico e proposta e
+  o requisito de participação: `pessoa_fisica` (aceita CPF), `startup` (LC 182: até 10
+  anos de CNPJ e receita até R$ 16 mi), `restrito` (veda MEI, capital/patrimônio ou tempo
+  mínimo), `me_epp` (exclusiva ME/EPP, MEI entra), `comum` (CNPJ sem restrição achada) ou
+  nulo (sem edital legível). Pessoa física só conta com frase que abre a disputa a ela
+  ("poderão participar pessoas físicas"): a palavra solta aparece em todo edital.
 - **Destino:** schema `licitacoes` em `LICITACOES_PG_URL` (padrão: Supabase).
 
 ## Score de relevância

@@ -567,12 +567,15 @@ def completar_bronze(df: pd.DataFrame) -> int:
     return n
 
 
-def bronze_abertos_fora_da_silver() -> pd.DataFrame:
-    """Linhas do bronze com prazo de proposta de hoje em diante que nunca foram
-    para a silver: o corte de recência as tirou antes de se saber o prazo."""
+def bronze_abertos_fora_da_silver(janela_dias: int = 0) -> pd.DataFrame:
+    """Linhas do bronze que nunca foram para a silver e ainda podem estar abertas:
+    prazo de proposta de hoje em diante (o corte de recência as tirou antes de se
+    saber o prazo) ou coletadas dentro de `janela_dias` (quando a janela cresce, as
+    que ficaram de fora voltam; o corte por publicação é refeito depois)."""
+    janela = (f" OR b.run_date >= current_date - {int(janela_dias)}" if janela_dias else "")
     return _read_df(
         f"SELECT b.* FROM {SCHEMA}.{TB_BRONZE} b "
         f"  LEFT JOIN {SCHEMA}.{TB_SILVER} s ON s.id_unificado = b.id_unificado "
         f" WHERE s.id_unificado IS NULL "
-        f"   AND b.data_encerramento_proposta ~ '^\d{{4}}-\d{{2}}-\d{{2}}' "
-        f"   AND left(b.data_encerramento_proposta, 10)::date >= current_date")
+        f"   AND ((b.data_encerramento_proposta ~ '^\d{{4}}-\d{{2}}-\d{{2}}' "
+        f"         AND left(b.data_encerramento_proposta, 10)::date >= current_date){janela})")

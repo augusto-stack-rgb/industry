@@ -222,6 +222,9 @@ PALAVRAS_EXCLUIR = [
     "Microcomputador", "Microcomputadores", "Computadores", "Notebook", "Notebooks",
     "Desktop", "Desktops", "Impressora", "Impressoras", "Toner", "Toners", "Cartucho",
     "Cartuchos", "Nobreak", "Nobreaks", "Monitores", "Periféricos",
+    # casam "tecnologia da informação" sem serviço (amostra do tema, 27/10/2026)
+    "Material de Consumo", "Materiais de Consumo", "Consumíveis", "Acessórios de Informática",
+    "Outsourcing de Impressão", "Transporte Vertical",
     # alimentação
     "Gêneros Alimentícios", "Alimentício", "Alimentícios", "Merenda", "Café",
     "Refeição", "Refeições", "Bufê", "Buffet", "Coffee Break",
@@ -471,7 +474,9 @@ RECENCIA_DIAS = 2
 # Coleta só olha no máximo RETRO_DIAS para trás (decisão de 15/10/2026: depois
 # da primeira carga, a coleta é diária e incremental; não há carga retroativa).
 RETRO_DIAS = 7
-JANELA_BRONZE_DIAS = RETRO_DIAS
+# 14 desde 27/10/2026: sem prazo conhecido, uma publicada há duas semanas ainda
+# pode estar aberta (a coleta continua olhando só RETRO_DIAS para trás)
+JANELA_BRONZE_DIAS = 14
 
 # ── Busca do PNCP por TERMO (além dos órgãos-alvo por CNPJ) ──────────────────
 # Na origem o PNCP era consultado só pelos CNPJs dos bancos. Serviços de ML/IA

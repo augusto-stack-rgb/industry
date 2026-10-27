@@ -191,7 +191,7 @@ def licitacoes_bronze(context: dg.AssetExecutionContext) -> dg.Output[pd.DataFra
             context.log.warning(f"[bronze] falha lendo {m.get('fonte')}: {str(e)[:120]}")
     novos = bronze_mod.inserir_bronze(dfs, date.today())
     # abertos que já estavam no bronze e o corte de recência barrou antes
-    atrasados = bronze_mod.db.bronze_abertos_fora_da_silver()
+    atrasados = bronze_mod.db.bronze_abertos_fora_da_silver(bronze_mod.JANELA_BRONZE_DIAS)
     if not atrasados.empty:
         context.log.info(f"[bronze] {len(atrasados)} aberto(s) do bronze voltam para a silver")
         novos = pd.concat([novos, atrasados[[c for c in novos.columns if c in atrasados.columns]]],

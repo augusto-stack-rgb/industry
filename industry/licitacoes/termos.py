@@ -24,12 +24,16 @@ _RX = re.compile(r"(?<![a-z0-9])(" + "|".join(re.escape(t) for t in _TERMOS) + r
 
 
 _RX_IA = re.compile(r"(?<![A-Za-zÀ-ú0-9])IA(?![A-Za-zÀ-ú0-9])")
+# Jargão de compra que contém um termo do tema sem ser serviço de dados:
+# "lubrificantes com previsão de consumo para 12 meses" (amostra de 27/10/2026).
+_RX_JARGAO = re.compile(r"(?:com |cuja )?previsao de consumo(?= (?:para|anual|mensal|estimad|aproximad|de \d|de ate))"
+                        r"|com previsao de consumo")
 
 
 def termos_encontrados(texto: str) -> list[str]:
     """Termos de tema/TI presentes no texto (sem repetição, na ordem em que aparecem).
     A sigla "IA" só conta em maiúsculas ("ia" minúsculo é o verbo ir)."""
-    achados = _RX.findall(normalizar(texto))
+    achados = _RX.findall(_RX_JARGAO.sub(" ", normalizar(texto)))
     if _RX_IA.search(str(texto or "")):
         achados.append("ia")
     return list(dict.fromkeys(achados))

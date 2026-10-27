@@ -138,3 +138,8 @@ CREATE TABLE IF NOT EXISTS licitacoes.nota_tecnica (
     evidencia text,                  -- criterios e pontos lidos no edital
     atualizado_em timestamptz DEFAULT now()
 );
+-- quem pode concorrer: false = aceita pessoa fisica; null = nao sabido
+ALTER TABLE licitacoes.nota_tecnica ADD COLUMN IF NOT EXISTS exige_cnpj boolean;
+-- pessoa_fisica, startup, restrito, me_epp, comum
+ALTER TABLE licitacoes.nota_tecnica ADD COLUMN IF NOT EXISTS requisito_cnpj text;
+ALTER TABLE licitacoes.nota_tecnica ADD COLUMN IF NOT EXISTS requisito_evidencia text;
