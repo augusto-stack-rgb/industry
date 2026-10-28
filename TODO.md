@@ -191,3 +191,20 @@ gancho. Primeira leva sugerida: vagas, diferenças na RF e diferenças no site.
 - [ ] Prospects: avaliação de chance por sinais com citação. Pode usar LLM para extrair os sinais?
       Os resultados das abordagens vão ser registrados no home para calibrar a nota?
 - [ ] Outsourcers: token do GitHub (opcional) para ler os 722 candidatos de uma vez.
+
+## Inteligência de licitações: depois do MVP
+
+Cortes feitos no MVP (plano em `industry/licitacoes/PLANO_PRODUTO.md`) que serão ampliados.
+
+- [ ] Prospects: recalibrar os cortes do MVP (share abaixo de 2% num nicho de mais de R$ 5 mi
+      por ano) depois de ver a distribuição real; aumentar o alcance.
+- [ ] Nichos: incluir saúde, limpeza, obra e compra de bens (o MVP cobre só serviços e TI).
+- [ ] Quem perdeu: além do Compras.gov.br federal e do TCE-RS, ler as atas de sessão em PDF
+      do PNCP (amostra, depois tudo) e os dados abertos de outros TCEs (SP, PR, MG...).
+- [ ] Histórico: ampliar de 3 meses para 12 meses e depois para tudo desde 2023 (Lei 14.133).
+- [ ] Participantes e lances do pregão federal (Dados Abertos do Compras.gov.br) para medir
+      disputa por nicho.
+- [ ] Hospedagem: a coleta completa roda no Postgres local, então depende desta máquina ligada.
+- [ ] Custo de LLM por cliente (incluso na assinatura): orçamento e provedor pago quando as
+      chaves grátis do Groq não derem conta.
+- [ ] Assessorias de licitação como segundo tipo de cliente.
