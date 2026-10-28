@@ -208,3 +208,12 @@ Cortes feitos no MVP (plano em `industry/licitacoes/PLANO_PRODUTO.md`) que serã
 - [ ] Custo de LLM por cliente (incluso na assinatura): orçamento e provedor pago quando as
       chaves grátis do Groq não derem conta.
 - [ ] Assessorias de licitação como segundo tipo de cliente.
+- [ ] Prospects: o critério "ativo" do MVP (3 vendas e R$ 100 mil por ano ganhos no período,
+      `CORTES` em `industry/mercado/nichos.py`) foi posto em 28/10 porque só o share marcava 8 mil
+      de 11 mil fornecedores; recalibrar com o histórico maior.
+- [ ] Nichos: o k-means sobre embeddings ainda junta coisas diferentes (poda de árvore em
+      "convênios e locação de imóveis"); testar HDBSCAN ou agrupar dentro da categoria do
+      contrato, e usar o catálogo CATSER quando vier preenchido.
+- [ ] Porte e tamanho do fornecedor pela base da Receita (`scripts/receita_federal`), que não
+      está nesta máquina: hoje o porte vem só dos resultados do Compras.gov.br.
+- [ ] Subir os prospects validados para a tabela `prospects` do home, com origem "licitações".

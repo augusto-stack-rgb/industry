@@ -5,8 +5,8 @@
     python -m industry.mercado.coleta --dias 3 --fontes contratacoes --refazer
 
 Resumível: cada (fonte, dia, modalidade) pronto fica em ``mercado.coleta_log`` e não é
-coletado de novo. Os últimos ``REFAZER_DIAS`` dias são sempre refeitos, porque o PNCP
-ainda recebe atualizações deles. Vai do dia mais recente para o mais antigo, então uma
+coletado de novo. Os últimos ``REFAZER_DIAS`` dias são refeitos quando a última coleta
+deles tem mais de ``REFAZER_APOS_H`` horas, porque o PNCP ainda recebe atualizações. Vai do dia mais recente para o mais antigo, então uma
 coleta interrompida já deixa o período recente completo.
 
 Itens e resultados vêm do Compras.gov.br, que chega com cerca de 1 mês de atraso: os
@@ -34,6 +34,7 @@ TABELA = {"contratacoes": "contratacao", "contratos": "contrato", "itens": "item
 CHAVE = {"contratacao": ("numero_controle_pncp",), "contrato": ("numero_controle_pncp",),
          "item": ("id_compra_item",), "resultado": ("id_compra_item", "sequencial_resultado")}
 REFAZER_DIAS = 7
+REFAZER_APOS_H = 12
 COMPRAS_GOV_ATRASO_DIAS = 45   # dia vazio mais recente que isto não conta como pronto
 
 
@@ -54,10 +55,12 @@ def gravar(conn, tabela: str, linhas: list[dict]) -> int:
     return len(unicas)
 
 
-def _prontos(conn) -> set[tuple]:
+def _prontos(conn) -> dict[tuple, bool]:
+    """{(fonte, dia, chave): coletado há menos de REFAZER_APOS_H horas}"""
     with conn.cursor() as cur:
-        cur.execute("select fonte, dia, chave from mercado.coleta_log where status = 'ok'")
-        return {(f, d, c) for f, d, c in cur.fetchall()}
+        cur.execute(f"select fonte, dia, chave, terminado_em > now() - interval '{REFAZER_APOS_H} hours' "
+                    f"from mercado.coleta_log where status = 'ok'")
+        return {(f, d, c): fresco for f, d, c, fresco in cur.fetchall()}
 
 
 def _registrar(conn, fonte, dia, chave, linhas, paginas, status, erro=None):
@@ -77,14 +80,15 @@ def coletar(inicio: date, fim: date, quais=FONTES, refazer: bool = False) -> dic
     hoje = date.today()
     total = {f: 0 for f in quais}
     try:
-        prontos = set() if refazer else _prontos(raw)
+        prontos = {} if refazer else _prontos(raw)
         dia = fim
         while dia >= inicio:
             recente = (hoje - dia).days < REFAZER_DIAS
             for fonte in quais:
                 chaves = [str(m) for m in fontes.MODALIDADES_PNCP] if fonte == "contratacoes" else [""]
                 for chave in chaves:
-                    if not recente and (fonte, dia, chave) in prontos:
+                    k = (fonte, dia, chave)
+                    if k in prontos and (not recente or prontos[k]):
                         continue
                     t0 = time.time()
                     try:
