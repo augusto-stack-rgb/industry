@@ -347,6 +347,9 @@ ZS_LABELS_EXTRA = [
 LLM_MODEL = os.getenv("LICITACOES_LLM_MODEL", "openai/gpt-oss-120b")
 LLM_BATCH = 15
 LLM_MAX_DESC = 320
+# CPSI e desafios: o problema e os microdesafios vêm depois do texto padrão (no
+# CPSI da SEFAZ-PI, "análise preditiva" está no caractere 2.238 do objeto)
+LLM_MAX_DESC_DESAFIO = 2500
 AREA_COL = {
     "A": "llm_ml_engineering",
     "B": "llm_ai_engineering",
@@ -382,6 +385,10 @@ LLM_SYS = (
     "com escopo explícito de IA ou ciência de dados; P&D com modelagem quantitativa central; "
     "contratação pública de solução inovadora (CPSI) de base tecnológica; "
     "desenvolvimento de software sob medida. "
+    "CPSI E DESAFIOS DE INOVAÇÃO descrevem o PROBLEMA, não a solução: avalie a solução "
+    "que o problema pede. Se ela exige prever, antecipar riscos, emitir alertas, "
+    "classificar, modelar dados, integrar bases ou ler textos (leis, processos, "
+    "documentos), a nota é ALTA mesmo sem as palavras IA, ML ou dados no texto. "
     "Notas BAIXAS: data analytics e BI (dashboards, painéis, relatórios gerenciais, Power BI, "
     "visualização de dados — sem construção de pipelines ou plataforma de dados); sites, "
     "portais e aplicativos comuns sem IA; "

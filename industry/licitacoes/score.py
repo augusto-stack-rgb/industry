@@ -23,12 +23,13 @@ import pandas as pd
 from industry.licitacoes.config import (
     TEMAS, ZS_MODEL, ZS_THRESHOLD, ZS_HYPOTHESIS, ZS_BATCH, ZS_LABELS_EXTRA, ZS_ATIVO,
     ZS_MAX_CHARS,
-    LLM_MODEL, LLM_BATCH, LLM_MAX_DESC, LLM_SYS, AREA_COL,
+    LLM_MODEL, LLM_BATCH, LLM_MAX_DESC, LLM_MAX_DESC_DESAFIO, LLM_SYS, AREA_COL,
     W_KW, W_ZS, W_LLM, SCORE_THRESHOLD, GOLD_FILTROS_COLS, TB_GOLD_FILTROS,
     W_VIAB_LLM, W_VIAB_VALOR, VIAB_FAIXAS_VALOR,
     W_KW_COM_LLM, W_ZS_COM_LLM, W_LLM_COM_LLM, VIAB_TETO_NAO_TECNICO,
 )
 from industry.licitacoes import db
+from industry.licitacoes.termos import e_desafio
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +238,8 @@ def _valor_num(v) -> float | None:
 def _texto_llm(objeto: str, valor, tipo) -> str:
     """Objeto (cortado) + valor estimado + modalidade — o valor e a modalidade
     alimentam a nota de VIABILIDADE (time pequeno)."""
-    partes = [re.sub(r"\s+", " ", str(objeto or ""))[:LLM_MAX_DESC]]
+    corte = LLM_MAX_DESC_DESAFIO if e_desafio(objeto) else LLM_MAX_DESC
+    partes = [re.sub(r"\s+", " ", str(objeto or ""))[:corte]]
     v = _valor_num(valor)
     partes.append(f"valor estimado: R$ {v:,.0f}".replace(",", ".") if v else
                   "valor estimado: não informado")

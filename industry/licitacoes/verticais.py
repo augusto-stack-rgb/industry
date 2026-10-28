@@ -20,11 +20,17 @@ import json
 import logging
 import re
 
-from industry.licitacoes.config import VERTICAIS
+from industry.licitacoes.config import LLM_MAX_DESC_DESAFIO, VERTICAIS
+from industry.licitacoes.termos import e_desafio
 
 log = logging.getLogger(__name__)
 
 MAX_OBJ_CHARS = 800      # o objeto útil cabe folgado; corta boilerplate de edital
+
+
+def _cortar(texto: str) -> str:
+    """CPSI e desafios trazem o problema depois do texto padrão: leem mais."""
+    return texto[:LLM_MAX_DESC_DESAFIO if e_desafio(texto) else MAX_OBJ_CHARS]
 
 _ID_POR_NOME = {v["nome"]: v["id"] for v in VERTICAIS}
 _NUCLEO = [v for v in VERTICAIS if v["nucleo"]]
@@ -47,6 +53,7 @@ Regras:
 - Construção de pipelines, integração ou plataforma de dados, data lake/lakehouse/data warehouse, MDM, qualidade e governança de dados é "Data Engineering, MDM e governança de dados". Só dashboards, painéis, Power BI e relatórios (sem construir a base de dados) é "Data analytics e BI".
 - Assinatura ou licença de ferramenta (inclusive de IA) sem serviço relevante de desenvolvimento/modelagem é "Licenças, SaaS e plataformas prontas"; se o objeto incluir desenvolvimento, treinamento de modelos ou implantação sob medida, escolha a área de serviço correspondente.
 - Curso ou capacitação de pessoas sobre IA é "Capacitação, cursos e eventos".
+- CPSI, "solução inovadora" e desafios de inovação descrevem o PROBLEMA, não a solução. Classifique pela solução que o problema pede: prever, antecipar riscos ou emitir alertas -> Data Science ou Forecasting; integrar bases -> Data Engineering; ler leis, processos ou documentos -> AI Engineering. Aqui não exija as palavras IA, ML ou dados, e não use "Outros" só porque o texto é sobre o problema.
 - As demais são categorias operacionais amplas: escolha a que melhor descreve o serviço ou bem contratado (ex.: "manutenção de ar-condicionado" -> Obras, facilities, bens e equipamentos; "sustentação de sistema de protocolo" -> Desenvolvimento de sistemas e TI; "leilão de imóveis" -> Leilão, concessão e alienação de ativos).
 - Use "Outros" apenas se o objeto genuinamente não se encaixar em nenhuma das \
 anteriores, ou se for vago demais para decidir (ex.: "prorrogação de prazo \
@@ -122,7 +129,7 @@ def classificar_objeto(objeto: str, cliente, tentativas: int = 3) -> tuple[str, 
     if len(texto) < 8:
         return "outros", 0.0
     for _ in range(tentativas):
-        d = _chamar(cliente, SYSTEM, f"Objeto: {texto[:MAX_OBJ_CHARS]}", MAX_TOKENS_ITEM)
+        d = _chamar(cliente, SYSTEM, f"Objeto: {_cortar(texto)}", MAX_TOKENS_ITEM)
         if isinstance(d, dict):
             return _vertical(d)
     return "", 0.0
@@ -150,7 +157,7 @@ def classificar_lote(objetos: list[tuple[str, str]], cliente,
         ``{id: (vertical_id, confianca)}``. Ids ausentes ficam de fora — o
         chamador os trata como falha e os retenta.
     """
-    validos = [(i, re.sub(r"\s+", " ", str(t or "")).strip()[:MAX_OBJ_CHARS])
+    validos = [(i, _cortar(re.sub(r"\s+", " ", str(t or "")).strip()))
                for i, t in objetos]
     fora: dict[str, tuple[str, float]] = {i: ("outros", 0.0) for i, t in validos if len(t) < 8}
     pedir = [(i, t) for i, t in validos if len(t) >= 8]

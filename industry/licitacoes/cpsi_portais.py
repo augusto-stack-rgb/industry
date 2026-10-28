@@ -137,7 +137,7 @@ def _html(s: requests.Session, url: str, fonte: str, tentativas: int = 4) -> Bea
 
 
 def _ano_mais_recente(texto: str) -> int:
-    anos = [int(a) for a in re.findall(r"(20\d{2})", texto or "")]
+    anos = [int(a) for a in re.findall(r"\b(20\d{2})\b", texto or "")]
     return max(anos) if anos else 0
 
 

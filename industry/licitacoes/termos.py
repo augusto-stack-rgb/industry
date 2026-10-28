@@ -70,7 +70,7 @@ def termos_nucleo(texto: str) -> list[str]:
     return list(dict.fromkeys(achados))
 
 
-_RX_CPSI = re.compile(r"(?i)cpsi|182/2021|lei complementar n?[º°.]?\s*182|marco legal das startups|"
+_RX_CPSI = re.compile(r"(?i)\bcpsi\b|182/2021|lei complementar n?[º°.]?\s*182|marco legal das startups|"
                       r"contrato p[úu]blico (?:para|de) solu[çc][ãa]o inovadora|teste de solu[çc][ãa]o")
 
 
@@ -78,3 +78,14 @@ def e_cpsi(texto: str) -> bool:
     """CPSI (LC 182/2021) conta como tema mesmo sem os termos: o desafio é descrito
     pelo problema ("qualificação profissional", "riscos fiscais")."""
     return bool(_RX_CPSI.search(str(texto or "")))
+
+
+_RX_DESAFIO = re.compile(r"(?i)\bdesafios?\b|como podemos|solu[çc][ãa]o inovadora|"
+                         r"consulta p[úu]blica ao mercado|inova[çc][ãa]o aberta")
+
+
+def e_desafio(texto: str) -> bool:
+    """CPSI ou desafio de inovação: o objeto descreve o PROBLEMA, não a solução, e
+    o pedido real (prever, antecipar risco, integrar bases) vem depois do texto
+    padrão. Os LLMs leem mais desses textos (LLM_MAX_DESC_DESAFIO)."""
+    return e_cpsi(texto) or bool(_RX_DESAFIO.search(str(texto or "")))

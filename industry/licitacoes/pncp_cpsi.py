@@ -45,7 +45,7 @@ _RX_PROBLEMA = re.compile(r"(?i)(problema p[úu]blico|desafio\s*0?\d+\s*[–—:
                           r"micro ?desafios?|resultados esperados|modelos? preditiv|intelig[êe]ncia artificial|"
                           r"aprendizado de m[áa]quina|machine learning|ci[êe]ncia de dados|an[áa]lise de dados|"
                           r"s[ée]ries? temporais|previs[ãa]o de)")
-_RX_TR = re.compile(r"(?i)termo de refer|tr|desafio|edital|etp|estudo t[ée]cnico")
+_RX_TR = re.compile(r"(?i)termo de refer|\btr\b|desafio|edital|\betp\b|estudo t[ée]cnico")
 
 
 def _desafios_no_pdf(s: requests.Session, controle: str, limite: int = 2500) -> str:
