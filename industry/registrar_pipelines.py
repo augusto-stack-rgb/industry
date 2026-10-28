@@ -18,7 +18,8 @@ JOBS = {
     'licitacoes_job': 'licitacoes', 'noticias_job': 'noticias',
     'noticias_mna_job': 'noticias', 'noticias_relatorio_job': 'noticias',
 }
-ASSETS = {'vagas_coletadas': 'jobs', 'vagas_classificadas': 'jobs', 'vagas_supabase': 'jobs',
+ASSETS = {'vagas_coletadas': 'jobs', 'vagas_classificadas': 'jobs', 'vagas_triagem': 'jobs',
+          'vagas_supabase': 'jobs',
           'prospects_supabase': 'prospects', 'outsourcers_rf': 'outsourcers',
           'outsourcers_github': 'outsourcers'}
 

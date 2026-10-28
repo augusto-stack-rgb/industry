@@ -1,7 +1,8 @@
 """Frente jobs: roda os coletores do repositorio employment, classifica as
-descricoes por LLM e sobe as vagas recentes para a secao Vagas do home.
+descricoes por LLM, faz a triagem para candidatura e sobe as vagas recentes
+para a secao Vagas do home.
 
-    vagas_coletadas -> vagas_classificadas -> vagas_supabase
+    vagas_coletadas -> vagas_classificadas -> vagas_triagem -> vagas_supabase
 """
 import csv
 import importlib
@@ -21,6 +22,8 @@ COLETORES = EMPLOYMENT / 'employment' / 'coletores'
 COLETAS = EMPLOYMENT / 'employment' / 'coletas'
 CLASSIFICACAO = EMPLOYMENT / 'employment' / 'classificacao'
 CLASSIFICADAS = CLASSIFICACAO / 'classificacao_coletas.csv'
+CANDIDATURAS = EMPLOYMENT / 'employment' / 'candidaturas'
+TRIAGEM = CANDIDATURAS / 'triagem.csv'
 ENV = Path(__file__).resolve().parents[2] / '.env'
 
 
@@ -112,6 +115,45 @@ def vagas_classificadas(context: dg.AssetExecutionContext, config: Classificacao
     return dg.MaterializeResult(metadata={k: v for k, v in r.items() if k != 'aposentadas'})
 
 
+@dg.asset(group_name='jobs', deps=[vagas_classificadas], description=(
+    'Para cada vaga dos cargos-alvo (Data, ML, MLOps e AI Engineering): verifica se '
+    'continua aberta, acha o ATS onde se candidata, le o formulario e aplica os filtros '
+    'eliminatorios (modalidade e geografia: remota que so aceita quem mora em outro '
+    'pais). Grava employment/candidaturas/triagem.csv e formularios/.'))
+def vagas_triagem(context: dg.AssetExecutionContext, supabase: Supabase) -> dg.MaterializeResult:
+    import subprocess
+    with supabase.execucao(context, 'jobs', AGENDA) as run:
+        # processo separado: os modulos de candidaturas importam uns aos outros
+        # pela pasta do script, e a triagem leva minutos de rede
+        p = subprocess.run([sys.executable, '-u', 'triagem.py'], cwd=CANDIDATURAS,
+                           capture_output=True, text=True, encoding='utf-8')
+        for linha in p.stdout.splitlines()[-6:]:
+            context.log.info(linha)
+        if p.returncode:
+            raise RuntimeError(p.stderr[-2000:])
+        with TRIAGEM.open(encoding='utf-8') as f:
+            linhas = list(csv.DictReader(f))
+        passa = sum(1 for l in linhas if l['resultado'] == 'passa')
+        run['linhas'] = len(linhas)
+        run['mensagem'] = f'{passa} passam na triagem'
+    return dg.MaterializeResult(metadata={'vagas': len(linhas), 'passam': passa})
+
+
+def _triagem():
+    """id na fonte -> colunas da triagem para a tabela jobs."""
+    if not TRIAGEM.exists():
+        return {}
+    with TRIAGEM.open(encoding='utf-8') as f:
+        return {l['id']: {
+            'aberta': {'True': True, 'False': False}.get(l['aberta']),
+            'verificada_em': l['verificada_em'] or None,
+            'ats': l['ats'] or None,
+            'url_candidatura': l.get('url_candidatura') or None,
+            'triagem': l['resultado'] or None,
+            'triagem_motivo': l['motivos'] or None,
+        } for l in csv.DictReader(f)}
+
+
 def _classificacao():
     """id na fonte -> campos do LLM, mais o nivel normalizado (estagio..lead)."""
     if not CLASSIFICADAS.exists():
@@ -124,15 +166,17 @@ class SyncConfig(dg.Config):
     dias: int = 30   # so vagas coletadas nesta janela sobem (limite de 500 MB do Supabase)
 
 
-@dg.asset(group_name='jobs', deps=[vagas_classificadas], description=(
+@dg.asset(group_name='jobs', deps=[vagas_triagem], description=(
     'Sobe para a tabela jobs do home as vagas de employment/coletas coletadas nos '
-    'ultimos N dias, com funcao, componentes, setor, modalidade e nivel. Preserva '
-    'status e notas editados no home.'))
+    'ultimos N dias, com funcao, componentes, setor, modalidade, nivel e a triagem '
+    '(aberta, ATS, resultado dos filtros). Preserva status e notas editados no home.'))
 def vagas_supabase(context: dg.AssetExecutionContext, config: SyncConfig,
                    supabase: Supabase) -> dg.MaterializeResult:
     with supabase.execucao(context, 'jobs', AGENDA) as run:
         corte = (date.today() - timedelta(days=config.dias)).isoformat()
-        cls = _classificacao()
+        cls, tri = _classificacao(), _triagem()
+        vazia = dict.fromkeys(['aberta', 'verificada_em', 'ats', 'url_candidatura', 'triagem',
+                               'triagem_motivo'])
         nivel = _importar('nivel', CLASSIFICACAO).nivel
         vagas = {}
         for arq in sorted(COLETAS.glob('*.json')):
@@ -149,6 +193,7 @@ def vagas_supabase(context: dg.AssetExecutionContext, config: SyncConfig,
                              setor=c.get('setor') or None,
                              modalidade=c.get('modalidade') or None,
                              nivel=nivel(r.get('seniority'), r.get('title')))
+                    v.update(tri.get(r['id'], vazia))
                     vagas[v['id']] = v
         run['linhas'] = supabase.upsert('jobs', list(vagas.values()), 'id')
     com = sum(1 for v in vagas.values() if v['funcao'])
