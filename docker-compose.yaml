@@ -12,6 +12,7 @@ x-dagster: &dagster
     # notícias no Postgres local (volume de texto); licitações seguem o .env
     # (LICITACOES_PG_URL ou, se vazio, SUPABASE_DB_URL)
     NOTICIAS_PG_URL: postgresql://industry:industry@postgres:5432/industry
+    MERCADO_PG_URL: postgresql://industry:industry@postgres:5432/industry
     SELENIUM_URL: http://selenium:4444
     INDUSTRY_DATA_DIR: /opt/codigos/industry/.data
     EMPLOYMENT_DIR: /opt/codigos/employment

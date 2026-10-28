@@ -6,6 +6,8 @@ Os nomes das funções foram mantidos para o código portado não precisar mudar
 - ``get_sqlalchemy_engine(LICITACOES_PG)`` -> ``LICITACOES_PG_URL``
 - ``get_sqlalchemy_engine(NOTICIAS_PG)``   -> ``NOTICIAS_PG_URL``
   (ambos caem em ``SUPABASE_DB_URL`` quando não definidos)
+- ``get_sqlalchemy_engine(MERCADO_PG)``    -> ``MERCADO_PG_URL``
+  (cai no Postgres local do compose, NUNCA no Supabase: o volume não cabe no plano grátis)
 - chaves de LLM (``GROQ_/CEREBRAS_/MISTRAL_API_KEY_N``) -> ``industry.shared.llm``
 - ``get_selenium_command_executor()``      -> ``SELENIUM_URL``
 
@@ -19,11 +21,14 @@ from pathlib import Path
 
 LICITACOES_PG = "LICITACOES_PG_URL"
 NOTICIAS_PG = "NOTICIAS_PG_URL"
+MERCADO_PG = "MERCADO_PG_URL"
+MERCADO_PG_PADRAO = "postgresql://industry:industry@localhost:5433/industry"
 
 
 def get_pg_url(conn_id: str) -> str:
     carregar_env()
-    url = os.environ.get(conn_id) or os.environ.get("SUPABASE_DB_URL")
+    padrao = MERCADO_PG_PADRAO if conn_id == MERCADO_PG else os.environ.get("SUPABASE_DB_URL")
+    url = os.environ.get(conn_id) or padrao
     if not url:
         raise RuntimeError(f"{conn_id} (ou SUPABASE_DB_URL) não definida — ver .env.example.")
     # SQLAlchemy com psycopg2; a string do Supabase vem como postgresql://
