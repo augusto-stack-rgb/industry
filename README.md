@@ -60,6 +60,26 @@ docker compose up -d --build    # Dagster em http://localhost:3001, Selenium, Po
   consultoria de ML Engineering, Data Management e Data Engineering. Licitações: ML
   Engineering, AI Engineering, Data Science, Forecasting e Research Operations.
 
+### Mercado de compras públicas (`industry/mercado`)
+
+Base do produto de inteligência de licitações (`industry/licitacoes/PLANO_PRODUTO.md`): o
+universo inteiro de compras, sem filtro de tema, no **Postgres local** (`MERCADO_PG_URL`,
+schema `mercado`). Nunca no Supabase, que não comporta esse volume.
+
+| tabela | fonte | o que tem |
+|---|---|---|
+| `contratacao` | PNCP, consulta (Brasil inteiro, todas as modalidades) | órgão, esfera, poder, UF, município, código IBGE, modalidade, objeto, valores estimado e homologado, datas, sistema de origem |
+| `contrato` | PNCP, consulta | **fornecedor (CNPJ)**, categoria (Serviços, TIC...), objeto, valores, vigência, ligado à contratação |
+| `item`, `resultado` | Dados Abertos do Compras.gov.br | itens com catálogo CATMAT/CATSER e vencedores por item com porte e desconto; só ~20-30% do PNCP (o que passa pelo Compras.gov.br), com ~1 mês de atraso |
+
+```bash
+python -m industry.mercado.coleta --dias 30        # backfill (resumível; ~20 min por dia de dados)
+```
+
+A API de consulta do PNCP aceita ~13 requisições por minuto (medido em 28/10/2026); insistir
+gera 429 e piora. O asset `mercado_coleta` (job `mercado_job`, diário às 3h) mantém os
+últimos 10 dias em dia; o histórico entra pelo comando acima.
+
 ## Decisões
 
 - **A coleta da Receita Federal não é DAG.** São ~7 GB que mudam uma vez por mês e são

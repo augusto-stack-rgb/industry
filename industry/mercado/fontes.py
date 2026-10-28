@@ -35,12 +35,12 @@ H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0", "Ac
 
 
 class Ritmo:
-    """Pausa entre requisições ao PNCP que se ajusta sozinha. Cada 429 custa 20 s ou
-    mais de espera; com pausa fixa de 0,8 s o pregão de um dia levou 10 s por página
-    (27/10/2026). Começa em 3 s (ritmo seguro medido em 15/10), sobe 1 s a cada 429 e
-    desce 0,1 s a cada 20 páginas seguidas sem erro, até o piso."""
+    """Pausa entre requisições ao PNCP que se ajusta sozinha. Insistir piora: medido em
+    28/10/2026 por 90 s, pausa de 1 s deu 4 respostas/min (o resto 429), 2 s deu 8,7 e
+    4 s deu 13,3 sem nenhum 429. Começa em 4 s, sobe 1 s a cada 429 e desce 0,1 s a
+    cada 20 páginas seguidas sem erro, até o piso."""
 
-    def __init__(self, inicial: float = 3.0, piso: float = 1.5, teto: float = 10.0):
+    def __init__(self, inicial: float = 4.0, piso: float = 3.5, teto: float = 12.0):
         self.pausa, self.piso, self.teto, self._ok = inicial, piso, teto, 0
 
     def sucesso(self):
