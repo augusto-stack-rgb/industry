@@ -35,13 +35,22 @@ H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0", "Ac
 
 
 class Ritmo:
-    """Pausa entre requisições ao PNCP que se ajusta sozinha. Insistir piora: medido em
-    28/10/2026 por 90 s, pausa de 1 s deu 4 respostas/min (o resto 429), 2 s deu 8,7 e
-    4 s deu 13,3 sem nenhum 429. Começa em 4 s, sobe 1 s a cada 429 e desce 0,1 s a
-    cada 20 páginas seguidas sem erro, até o piso."""
+    """Intervalo mínimo entre o INÍCIO de duas requisições ao PNCP, ajustado sozinho.
+    Insistir piora: medido em 28/10/2026 por 90 s, pausa de 1 s deu 4 respostas/min (o
+    resto 429), 2 s deu 8,7 e 4 s deu 13,3 sem nenhum 429. Conta desde o início da
+    anterior, não desde a resposta: com a API lenta (3 a 7 s por resposta à noite), somar
+    a pausa depois da resposta levava a 11 s por página. Começa em 4,5 s, sobe 1 s a cada
+    429 e desce 0,1 s a cada 20 páginas seguidas sem erro, até o piso."""
 
-    def __init__(self, inicial: float = 4.0, piso: float = 3.5, teto: float = 12.0):
+    def __init__(self, inicial: float = 4.5, piso: float = 4.0, teto: float = 12.0):
         self.pausa, self.piso, self.teto, self._ok = inicial, piso, teto, 0
+        self._ultimo = 0.0
+
+    def esperar(self):
+        falta = self._ultimo + self.pausa - time.monotonic()
+        if falta > 0:
+            time.sleep(falta)
+        self._ultimo = time.monotonic()
 
     def sucesso(self):
         self._ok += 1
@@ -62,6 +71,8 @@ def _get(s: requests.Session, url: str, params: dict, ritmo: Ritmo | None = None
     motivo = ""
     for _ in range(TENTATIVAS):
         try:
+            if ritmo:
+                ritmo.esperar()
             r = s.get(url, params=params, headers=H, timeout=90)
             if r.status_code == 204:
                 return None
@@ -86,9 +97,8 @@ def _paginar(s, url: str, params: dict, chave_lista: str, tamanho: int, pausa: f
     ritmo = pausa if isinstance(pausa, Ritmo) else None
     while True:
         d = _get(s, url, {**params, "pagina": pagina, "tamanhoPagina": tamanho}, ritmo)
-        # pausa depois de TODA requisição, inclusive a última: a próxima chamada
-        # (outra modalidade, outro dia) sai logo em seguida
-        time.sleep(ritmo.pausa if ritmo else pausa)
+        if not ritmo:   # o Ritmo espera sozinho antes de cada requisição
+            time.sleep(pausa)
         lote = (d or {}).get(chave_lista) or []
         regs += lote
         total = (d or {}).get("totalPaginas") or 0
