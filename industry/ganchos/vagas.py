@@ -105,7 +105,8 @@ def gupy(cli, e) -> list[dict]:
 
 def coletar(supabase, log, pausa: float = 4.0) -> dict:
     emps = comum.empresas(supabase)
-    ganchos, estado, sem_resposta = [], {}, 0
+    ganchos, estado, sem_resposta, novos = [], {}, 0, 0
+    pendentes, estado_pendente = [], {}   # gravados a cada 25 empresas
     with comum.cliente_http() as cli:
         for i, e in enumerate(emps):
             try:
@@ -115,7 +116,8 @@ def coletar(supabase, log, pausa: float = 4.0) -> dict:
                 log.warning(f'{e["cnpj"]}: {type(ex).__name__}: {ex}')
                 continue
             vistas = {v['id'] for v in vagas}
-            estado[e['cnpj']] = {'abertas': len(vistas), 'em': date.today().isoformat()}
+            estado[e['cnpj']] = estado_pendente[e['cnpj']] = {'abertas': len(vistas), 'em': date.today().isoformat()}
+            antes = len(ganchos)
             for v in {v['id']: v for v in vagas}.values():
                 pac = classificar(v['titulo'], e.get('segmento'))
                 if pac:
@@ -127,10 +129,14 @@ def coletar(supabase, log, pausa: float = 4.0) -> dict:
             if vagas:
                 log.info(f'{(e["nome_fantasia"] or e["razao_social"])[:40]}: {len(vistas)} vagas, '
                          f'{sum(1 for g in ganchos if g["cnpj"] == e["cnpj"])} ganchos')
+            pendentes += ganchos[antes:]
             if i % 25 == 0:
                 log.info(f'{i}/{len(emps)} empresas lidas')
+                comum.salvar_estados(supabase, FONTE, estado_pendente)
+                novos += comum.gravar(supabase, pendentes)
+                pendentes, estado_pendente = [], {}
             time.sleep(pausa)
-    comum.salvar_estados(supabase, FONTE, estado)
-    novos = comum.gravar(supabase, ganchos)
+    comum.salvar_estados(supabase, FONTE, estado_pendente)
+    novos += comum.gravar(supabase, pendentes)
     return {'empresas': len(emps), 'com_vagas': sum(1 for x in estado.values() if x['abertas']),
             'ganchos': len(ganchos), 'novos': novos, 'erros': sem_resposta}

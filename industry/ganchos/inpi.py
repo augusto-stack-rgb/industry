@@ -25,7 +25,17 @@ BUSCA_MARCA = 'https://busca.inpi.gov.br/pePI/servlet/MarcasServletController?Ac
 BUSCA_PATENTE = 'https://busca.inpi.gov.br/pePI/servlet/PatenteServletController?Action=searchPatente&tipoPesquisa=BY_NUM_PROC&NumPedido={}'
 
 
-def _linhas(cli, arquivo, filtro=None):
+def _linhas(cli, arquivo, filtro=None, tentativas=3):
+    """Como _ler, mas recomeca o arquivo se o servidor cortar o download no meio."""
+    for n in range(tentativas):
+        try:
+            return list(_ler(cli, arquivo, filtro))
+        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ReadTimeout):
+            if n == tentativas - 1:
+                raise
+
+
+def _ler(cli, arquivo, filtro=None):
     """Linhas do CSV como dicionarios. `filtro(linha_crua)` descarta antes do
     parse, o que deixa os arquivos de varios GB rapidos de atravessar."""
     with cli.stream('GET', BASE + arquivo) as r:

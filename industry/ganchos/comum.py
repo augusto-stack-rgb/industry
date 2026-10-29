@@ -86,7 +86,25 @@ def gancho(cnpj, fonte, tipo, pacote, data_fato, fato, evidencia, chave, **detal
             'chave': f'{fonte}|{tipo}|{chave}'}
 
 
+def com_retentativa(fn, tentativas: int = 5, espera: float = 30):
+    """Repete operacoes no banco quando a rede cai (DNS, conexao derrubada):
+    uma coleta de horas nao pode se perder na gravacao final."""
+    import time
+    import psycopg
+    for n in range(tentativas):
+        try:
+            return fn()
+        except psycopg.OperationalError:
+            if n == tentativas - 1:
+                raise
+            time.sleep(espera * (n + 1))
+
+
 def gravar(supabase: Supabase, ganchos: list[dict]) -> int:
+    return com_retentativa(lambda: _gravar(supabase, ganchos))
+
+
+def _gravar(supabase: Supabase, ganchos: list[dict]) -> int:
     """Insere so o que e novo (a `chave` deduplica). Devolve quantos entraram."""
     if not ganchos:
         return 0
@@ -108,6 +126,10 @@ def estados(supabase: Supabase, fonte: str) -> dict[str, dict]:
 
 
 def salvar_estados(supabase: Supabase, fonte: str, novos: dict[str, dict]) -> None:
+    com_retentativa(lambda: _salvar_estados(supabase, fonte, novos))
+
+
+def _salvar_estados(supabase: Supabase, fonte: str, novos: dict[str, dict]) -> None:
     with supabase.conectar() as c:
         c.cursor().executemany(
             'insert into ganchos_estado (cnpj, fonte, estado) values (%s, %s, %s) on conflict (cnpj, fonte) '
