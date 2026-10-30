@@ -36,7 +36,9 @@ def _importar(nome, pasta=COLETORES):
 class ColetaConfig(dg.Config):
     # gupy_empresa fica de fora: traz todas as vagas de uma empresa, sem termo
     fontes: list[str] = ['himalayas', 'gupy', 'greenhouse', 'arbeitnow',
-                         'remoteok', 'remotive', 'hackernews', 'enlizt']
+                         'remoteok', 'remotive', 'hackernews', 'enlizt',
+                         # Polonia (solid.jobs, NoFluffJobs), Jobicy e paineis de ATS
+                         'solidjobs', 'nofluffjobs', 'jobicy', 'ats']
     termos: str = 'dados'   # conjunto em employment/coletores/termos.py
 
 
