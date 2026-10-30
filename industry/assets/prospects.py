@@ -39,3 +39,19 @@ def prospects_supabase(context: dg.AssetExecutionContext,
             por_segmento[l['segmento']] = por_segmento.get(l['segmento'], 0) + 1
         context.log.info(f'{len(linhas)} prospects: {por_segmento}')
     return dg.MaterializeResult(metadata={'prospects': len(linhas), **por_segmento})
+
+
+@dg.asset(group_name='prospects', description=(
+    'Lista CHATBOT (separada dos prospects): faz upsert na tabela prospects_chatbot '
+    'do recorte filtros/chatbot/sul.sql (clinicas, imobiliarias, educacao, '
+    'concessionarias... so empresas grandes). Preserva o que o home edita.'))
+def prospects_chatbot_supabase(context: dg.AssetExecutionContext,
+                               supabase: Supabase) -> dg.MaterializeResult:
+    with supabase.execucao(context, 'prospects') as run:
+        linhas = ler_exports('chatbot')
+        run['linhas'] = supabase.upsert('prospects_chatbot', linhas, 'cnpj')
+        por_segmento = {}
+        for l in linhas:
+            por_segmento[l['segmento']] = por_segmento.get(l['segmento'], 0) + 1
+        context.log.info(f'{len(linhas)} prospects da lista chatbot: {por_segmento}')
+    return dg.MaterializeResult(metadata={'prospects_chatbot': len(linhas), **por_segmento})
