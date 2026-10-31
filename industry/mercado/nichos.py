@@ -56,7 +56,9 @@ _FORA = re.compile(r"limpeza|conservacao|higieniza|jardinag|rocada|dedetiza|desr
                    r"pavimenta|construcao|reforma|manutencao predial|engenharia civil|recapeamento|"
                    # concessionárias, sem disputa: viravam os maiores nichos com HHI acima de 8.000
                    r"energia eletrica|fornecimento de energia|agua e esgoto|esgotamento sanitario|"
-                   r"abastecimento de agua|saneamento|correios|postais|telefonia fixa|despesa referente")
+                   r"abastecimento de agua|saneamento|correios|postais|telefonia fixa|despesa referente|"
+                   # o órgão paga a inscrição de servidor em evento ou curso: não há disputa
+                   r"pagamento (de |da |das )?(taxas? de )?inscric|taxas? de inscric|inscricao (em|de) eventos?")
 # texto padrão que abre quase todo objeto e só atrapalha o agrupamento
 _ABERTURA = re.compile(r"^(?:o objeto .{0,40}? e a |objeto:?\s*)?(?:contratacao|aquisicao|registro de precos?)"
                        r"(?: para (?:futura e eventual|eventual))?(?: contratacao)?(?: de)?(?: empresas?)?"
