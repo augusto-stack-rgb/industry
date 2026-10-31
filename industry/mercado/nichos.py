@@ -24,6 +24,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+import time
 from datetime import date
 from pathlib import Path
 
@@ -135,7 +136,9 @@ def agrupar(v: pd.DataFrame) -> pd.DataFrame:
     from sklearn.cluster import MiniBatchKMeans
     from sklearn.feature_extraction.text import TfidfVectorizer
 
-    unicos = v["texto"].drop_duplicates().tolist()
+    # ordenado: o SQL não garante ordem, e com a ordem mudando o k-means mudava os grupos a
+    # cada rodada (486 -> 498 prospects com os mesmos dados) e o cache de nomes não servia
+    unicos = sorted(v["texto"].drop_duplicates().tolist())
     emb = _embeddings(unicos)
     # ~40 textos distintos por nicho: com 120 saíam 128 nichos misturando locação de veículo e de stand
     k = int(np.clip(len(unicos) / 40, 100, 1000))
@@ -194,16 +197,21 @@ def _nomear_llm(centrais: dict[int, list[str]], lote: int = 20) -> dict[int, str
         grupo = faltam[i:i + lote]
         pedido = json.dumps([{"id": nid, "descricoes": [d[:120] for d in centrais[nid]]} for nid in grupo],
                             ensure_ascii=False)
-        try:
-            r = cli.create(messages=[{"role": "system", "content": sistema}, {"role": "user", "content": pedido}],
-                           temperature=0, response_format={"type": "json_object"}, reasoning_effort="low",
-                           max_completion_tokens=60 * len(grupo) + 200)
-            for x in json.loads(r.choices[0].message.content).get("nomes", []):
-                if int(x["id"]) in chave and str(x.get("nome", "")).strip():
-                    cache[chave[int(x["id"])]] = str(x["nome"]).strip()[:80]
-        except Exception as e:  # noqa: BLE001 — fica o nome do c-TF-IDF
-            log.warning(f"[nichos] nomes por LLM falharam no lote {i // lote}: {str(e)[:120]}")
-    cache_path.write_text(json.dumps(cache, ensure_ascii=False, indent=0), encoding="utf-8")
+        # com todas as chaves no limite o roteador desiste na hora (espera no máximo 90 s);
+        # aqui o lote espera a cota e tenta de novo, e o cache é gravado a cada lote
+        for tentativa in range(5):
+            try:
+                r = cli.create(messages=[{"role": "system", "content": sistema}, {"role": "user", "content": pedido}],
+                               temperature=0, response_format={"type": "json_object"}, reasoning_effort="low",
+                               max_completion_tokens=60 * len(grupo) + 200)
+                for x in json.loads(r.choices[0].message.content).get("nomes", []):
+                    if int(x["id"]) in chave and str(x.get("nome", "")).strip():
+                        cache[chave[int(x["id"])]] = str(x["nome"]).strip()[:80]
+                break
+            except Exception as e:  # noqa: BLE001 — no fim fica o nome do c-TF-IDF
+                log.warning(f"[nichos] nomes por LLM, lote {i // lote}, tentativa {tentativa + 1}: {str(e)[:120]}")
+                time.sleep(150)
+        cache_path.write_text(json.dumps(cache, ensure_ascii=False, indent=0), encoding="utf-8")
     return {nid: cache[h] for nid, h in chave.items() if h in cache}
 
 
