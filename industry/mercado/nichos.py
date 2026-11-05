@@ -68,6 +68,11 @@ _ABERTURA = re.compile(r"^(?:o objeto .{0,40}? e a |objeto:?\s*)?(?:contratacao|
                        r"(?: especializadas?)?(?: (?:na|para a?|em) (?:prestacao de )?)?(?:servicos? de )?")
 
 
+_PUBLICO = re.compile(r"\bcons\.? interm|consorcio (publico|intermunicipal)|\bmunicipio de\b|\bprefeitura\b|"
+                      r"\bcamara municipal\b|\bsecretaria\b|\buniversidade (federal|estadual)\b|\binstituto federal\b|"
+                      r"\bgoverno d|\bministerio\b|\btribunal\b")
+
+
 def _limpar(t: str) -> str:
     s = normalizar(t)
     s = _ABERTURA.sub("", s.strip())
@@ -274,6 +279,8 @@ def marcar_prospects(nic: pd.DataFrame, fn: pd.DataFrame, v: pd.DataFrame) -> pd
           & (p["licitacoes_nicho"] >= c["licitacoes_min_nicho"]) & (p["valor_ano"] >= c["ganho_min_ano"])
           & (p["nicho_ano"] > c["nicho_min_ano"]) & (p["hhi"] < c["hhi_max"])
           & ((p["porte"] != "Demais") | (p["ganho_total_ano"] < c["demais_ganho_max"])))
+    # entidade pública também aparece como fornecedora (a CIVAP, consórcio intermunicipal, liderava a lista)
+    ok &= ~p["nome"].fillna("").map(lambda t: bool(_PUBLICO.search(normalizar(t))))
     p = p[ok].copy()
     p["espaco_ano"] = p["nicho_ano"] - p["valor_ano"]
     # dor: ficou atrás no registro de preços, ou atua em poucas UFs de um nicho espalhado
