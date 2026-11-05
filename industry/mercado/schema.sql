@@ -150,6 +150,16 @@ CREATE TABLE IF NOT EXISTS mercado.resultado (
 CREATE INDEX IF NOT EXISTS resultado_fornecedor_idx ON mercado.resultado (fornecedor_ni);
 CREATE INDEX IF NOT EXISTS resultado_compra_idx ON mercado.resultado (numero_controle_compra);
 
+-- Modalidade das compras de contratos cuja compra saiu antes da janela coletada (modalidades.py)
+CREATE TABLE IF NOT EXISTS mercado.compra_modalidade (
+    numero_controle_compra text PRIMARY KEY,
+    modalidade_id integer,      -- código do PNCP: 6/7 pregão, 4/5 concorrência, 8 dispensa, 9 inexigibilidade
+    modalidade_nome text,
+    modo_disputa_nome text,
+    achada boolean,             -- false: o PNCP não tem essa compra
+    consultado_em timestamptz DEFAULT now()
+);
+
 -- Uma linha por (fonte, dia, chave) coletado: a coleta é resumível e não repete dia pronto.
 CREATE TABLE IF NOT EXISTS mercado.coleta_log (
     fonte text,

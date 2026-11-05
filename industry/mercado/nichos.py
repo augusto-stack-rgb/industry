@@ -46,8 +46,10 @@ CORTES = {
     "hhi_max": 2500,                # acima disso o nicho é dominado por poucos
     "demais_ganho_max": 5_000_000,  # porte "Demais" só entra se ganhou menos que isso (não é gigante)
     # ativo de verdade: quem disputa com frequência é quem pagaria por inteligência de licitação
-    # (sem isso, 8 mil de 11,7 mil fornecedores viravam prospect, mediana de 1 venda; 28/10/2026)
-    "vendas_min": 3,
+    # (sem isso, 8 mil de 11,7 mil fornecedores viravam prospect; 28/10/2026). Conta licitações
+    # distintas, não itens: com "3 vendas", 315 de 499 tinham ganho uma só licitação de 3 itens
+    "licitacoes_min_total": 3,
+    "licitacoes_min_nicho": 2,
     "ganho_min_ano": 100_000,
 }
 
@@ -84,20 +86,31 @@ def carregar_vendas(eng) -> tuple[pd.DataFrame, dict]:
         contratos = pd.read_sql(text("""
             select 'contrato' as fonte, ct.numero_controle_pncp as id, ct.numero_controle_compra as compra,
                    ct.fornecedor_ni as ni, ct.fornecedor_nome as nome, null::text as porte, ct.objeto as descricao,
-                   ct.valor_global as valor, ct.uf, ct.orgao_cnpj, null::int as ordem
+                   ct.valor_global as valor, ct.uf, ct.orgao_cnpj, null::int as ordem,
+                   case when coalesce(cp.modalidade_id, cm.modalidade_id) in (2, 3, 4, 5, 6, 7, 10, 11) then 'licitacao'
+                        when coalesce(cp.modalidade_id, cm.modalidade_id) = 8 then 'dispensa'
+                        when coalesce(cp.modalidade_id, cm.modalidade_id) is null then 'desconhecida'
+                        else 'outra' end as modal
               from mercado.contrato ct
               left join mercado.contratacao cp on cp.numero_controle_pncp = ct.numero_controle_compra
+              left join mercado.compra_modalidade cm on cm.numero_controle_compra = ct.numero_controle_compra
              where ct.categoria in ('Serviços', 'Informática (TIC)') and ct.fornecedor_tipo_pessoa = 'PJ'
                and coalesce(ct.valor_global, 0) > 0
-               and coalesce(cp.modalidade_id, 0) <> 9   -- inexigibilidade: sem disputa"""), c)
+               -- sem disputa: inexigibilidade (9) e credenciamento (12)
+               and coalesce(cp.modalidade_id, cm.modalidade_id, 0) not in (9, 12)"""), c)
+        # no Compras.gov.br a modalidade está no id: UASG (6 dígitos) + modalidade (2) + número + ano.
+        # 03 concorrência, 05 pregão, 06 dispensa; saem 07 inexigibilidade e 00 credenciamento, que
+        # eram 75% das licitações dos prospects (conferido contra o PNCP em 02/11/2026)
         resultados = pd.read_sql(text("""
             select 'resultado' as fonte, r.id_compra_item || '-' || r.sequencial_resultado as id,
                    r.numero_controle_compra as compra, r.fornecedor_ni as ni, r.fornecedor_nome as nome,
                    r.porte_nome as porte, i.descricao, r.valor_total as valor, r.uf, r.orgao_cnpj,
-                   r.ordem_classificacao_srp as ordem
+                   r.ordem_classificacao_srp as ordem,
+                   case when substr(r.id_compra_item, 7, 2) = '06' then 'dispensa' else 'licitacao' end as modal
               from mercado.resultado r join mercado.item i using (id_compra_item)
              where i.material_ou_servico = 'S' and r.tipo_pessoa = 'PJ' and r.situacao like 'Informado%'
                and coalesce(r.valor_total, 0) > 0
+               and substr(r.id_compra_item, 7, 2) in ('03', '05', '06')
                and not exists (select 1 from mercado.contrato ct where ct.numero_controle_compra = r.numero_controle_compra)"""), c)
     v = pd.concat([x for x in (contratos, resultados) if not x.empty], ignore_index=True)
     v = v[v["descricao"].fillna("").map(_no_escopo)].copy()
@@ -243,20 +256,34 @@ def marcar_prospects(nic: pd.DataFrame, fn: pd.DataFrame, v: pd.DataFrame) -> pd
     p = fn.merge(nic[["nicho", "nome", "valor_ano", "hhi", "fornecedores", "ufs"]]
                  .rename(columns={"nome": "nicho_nome", "valor_ano": "nicho_ano", "ufs": "nicho_ufs"}), on="nicho")
     p = p.merge(total_forn, left_on="raiz", right_index=True)
+    # licitações distintas ganhas com disputa possível: contrato de modalidade ainda desconhecida
+    # não conta até modalidades.py resolver (pode ser inexigibilidade)
+    licit = v[v["modal"].isin(["licitacao", "dispensa"])]
+    p = p.merge(licit.groupby(["raiz", "nicho"])["compra"].nunique().rename("licitacoes_nicho").reset_index(),
+                on=["raiz", "nicho"])
+    p["licitacoes_total"] = p["raiz"].map(licit.groupby("raiz")["compra"].nunique())
+    # pregão e concorrência, sem dispensa: disputa aberta com certeza
+    abertas = licit[licit["modal"] == "licitacao"].groupby("raiz")["compra"].nunique()
+    p["pregao_concorrencia"] = p["raiz"].map(abertas).fillna(0).astype(int)
+    # contratos em que a modalidade ainda não é conhecida, fora da contagem
+    p["contratos_sem_modalidade"] = p["raiz"].map(
+        v[v["modal"] == "desconhecida"].groupby("raiz")["id"].count()).fillna(0).astype(int)
     p["porte"] = p["raiz"].map(porte).fillna("não informado")
     c = CORTES
-    ok = ((p["share"] < c["share_max"]) & (p["vendas"] >= c["vendas_min"]) & (p["valor_ano"] >= c["ganho_min_ano"]) & (p["nicho_ano"] > c["nicho_min_ano"]) & (p["hhi"] < c["hhi_max"])
+    ok = ((p["share"] < c["share_max"]) & (p["licitacoes_total"] >= c["licitacoes_min_total"])
+          & (p["licitacoes_nicho"] >= c["licitacoes_min_nicho"]) & (p["valor_ano"] >= c["ganho_min_ano"])
+          & (p["nicho_ano"] > c["nicho_min_ano"]) & (p["hhi"] < c["hhi_max"])
           & ((p["porte"] != "Demais") | (p["ganho_total_ano"] < c["demais_ganho_max"])))
     p = p[ok].copy()
     p["espaco_ano"] = p["nicho_ano"] - p["valor_ano"]
     # dor: ficou atrás no registro de preços, ou atua em poucas UFs de um nicho espalhado
     p["dor"] = 1 + np.minimum(p["atras_srp"], 5) * 0.2 + (p["nicho_ufs"] >= 10) * (p["ufs"] <= 2) * 0.5
-    p["prioridade"] = np.log10(p["espaco_ano"]) * np.log1p(p["vendas"]) * p["dor"]
+    p["prioridade"] = np.log10(p["espaco_ano"]) * np.log1p(p["licitacoes_nicho"]) * p["dor"]
     # uma linha por fornecedor: o nicho onde a prioridade é maior
     p = p.sort_values("prioridade", ascending=False).drop_duplicates("raiz")
 
     def frase(r):
-        return (f"ganhou R$ {r.valor_ano:,.0f}/ano em '{r.nicho_nome}' ({r.vendas} venda(s), {r.ufs} UF); "
+        return (f"ganhou R$ {r.valor_ano:,.0f}/ano em '{r.nicho_nome}' ({r.licitacoes_nicho} licitações, {r.ufs} UF); "
                 f"o nicho movimenta R$ {r.nicho_ano:,.0f}/ano com {r.fornecedores} fornecedores; "
                 f"share {r.share:.2%}").replace(",", ".")
     p["evidencia"] = p.apply(frase, axis=1)
@@ -280,7 +307,9 @@ def calcular() -> dict:
     pros.to_sql("prospect", eng, schema="mercado", if_exists="replace", index=False)
     DADOS.mkdir(parents=True, exist_ok=True)
     saida = DADOS / f"prospects_{date.today().isoformat()}.csv"
-    pros[["ni", "nome", "porte", "nicho_nome", "valor_ano", "vendas", "share", "nicho_ano", "fornecedores",
+    pros[["ni", "nome", "porte", "nicho_nome", "valor_ano", "licitacoes_nicho", "licitacoes_total",
+          "pregao_concorrencia", "contratos_sem_modalidade", "vendas",
+          "share", "nicho_ano", "fornecedores",
           "hhi", "ufs", "nichos", "atras_srp", "prioridade", "evidencia", "exemplos"]].to_csv(saida, index=False, sep=";")
     nic.to_csv(DADOS / f"nichos_{date.today().isoformat()}.csv", index=False, sep=";")
     r = {"vendas": len(v), "nichos": len(nic), "fornecedores": int(fn["raiz"].nunique()),
