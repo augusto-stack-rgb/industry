@@ -150,6 +150,27 @@ CREATE TABLE IF NOT EXISTS mercado.resultado (
 CREATE INDEX IF NOT EXISTS resultado_fornecedor_idx ON mercado.resultado (fornecedor_ni);
 CREATE INDEX IF NOT EXISTS resultado_compra_idx ON mercado.resultado (numero_controle_compra);
 
+-- Cadastro de fornecedores do governo (SICAF, via Dados Abertos do Compras.gov.br): quem se
+-- cadastrou para licitar, ganhando ou não. 826 mil ativos em 06/11/2026. Base do universo de
+-- prospects; o PNCP só publica vencedores.
+CREATE TABLE IF NOT EXISTS mercado.fornecedor (
+    ni text PRIMARY KEY,        -- CNPJ ou CPF
+    raiz text,                  -- 8 primeiros dígitos do CNPJ
+    nome text,
+    habilitado_licitar boolean,
+    ativo boolean,
+    cnae integer,
+    cnae_nome text,
+    porte text,                 -- ME, EPP, DEMAIS...
+    natureza_juridica text,
+    municipio text,
+    uf text,
+    dados jsonb,
+    coletado_em timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS fornecedor_raiz_idx ON mercado.fornecedor (raiz);
+CREATE INDEX IF NOT EXISTS fornecedor_cnae_idx ON mercado.fornecedor (cnae);
+
 -- Modalidade das compras de contratos cuja compra saiu antes da janela coletada (modalidades.py)
 CREATE TABLE IF NOT EXISTS mercado.compra_modalidade (
     numero_controle_compra text PRIMARY KEY,

@@ -32,7 +32,8 @@ log = logging.getLogger(__name__)
 FONTES = ("contratacoes", "contratos", "itens", "resultados")
 TABELA = {"contratacoes": "contratacao", "contratos": "contrato", "itens": "item", "resultados": "resultado"}
 CHAVE = {"contratacao": ("numero_controle_pncp",), "contrato": ("numero_controle_pncp",),
-         "item": ("id_compra_item",), "resultado": ("id_compra_item", "sequencial_resultado")}
+         "item": ("id_compra_item",), "resultado": ("id_compra_item", "sequencial_resultado"),
+         "fornecedor": ("ni",)}
 REFAZER_DIAS = 7
 REFAZER_APOS_H = 12
 COMPRAS_GOV_ATRASO_DIAS = 45   # dia vazio mais recente que isto não conta como pronto
