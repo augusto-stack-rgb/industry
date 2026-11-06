@@ -51,6 +51,10 @@ CORTES = {
     "licitacoes_min_total": 3,
     "licitacoes_min_nicho": 2,
     "ganho_min_ano": 100_000,
+    # decididos com o Augusto em 06/11/2026: disputa aberta comprovada (dispensa sozinha pode
+    # ser compra direta) e só serviços técnicos e de TI
+    "pregao_concorrencia_min": 1,
+    "fracao_ti_min": 0.5,   # com 0,3 entrava "confecção de uniformes e bordados"
 }
 
 _FORA = re.compile(r"limpeza|conservacao|higieniza|jardinag|rocada|dedetiza|desratiza|vigilancia|portaria|"
@@ -71,6 +75,11 @@ _ABERTURA = re.compile(r"^(?:o objeto .{0,40}? e a |objeto:?\s*)?(?:contratacao|
 _PUBLICO = re.compile(r"\bcons\.? interm|consorcio (publico|intermunicipal)|\bmunicipio de\b|\bprefeitura\b|"
                       r"\bcamara municipal\b|\bsecretaria\b|\buniversidade (federal|estadual)\b|\binstituto federal\b|"
                       r"\bgoverno d|\bministerio\b|\btribunal\b")
+
+
+_TECNICO = re.compile(r"software|sistema|tecnolog|informatic|\bti\b|\btic\b|dados|\bredes?\b|internet|telecom|"
+                      r"digital|computa|nuvem|cloud|engenharia|geoprocess|automac|inteligencia artificial|"
+                      r"seguranca da informacao|desenvolvimento|suporte tecnico|consultoria tecnica")
 
 
 def _limpar(t: str) -> str:
@@ -250,6 +259,11 @@ def mercado_por_nicho(v: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     nic["ufs"] = nic["nicho"].map(v.groupby("nicho")["uf"].nunique())
     exemplo = v.sort_values("valor", ascending=False).drop_duplicates("nicho").set_index("nicho")["descricao"]
     nic["exemplo"] = nic["nicho"].map(exemplo).str[:200]
+    # serviço técnico ou de TI: nome do nicho, ou parte das vendas com termo de TI/dados (termos.py)
+    ti = v.assign(ti=v["descricao"].fillna("").map(lambda t: bool(termos_encontrados(t))))
+    nic["fracao_ti"] = nic["nicho"].map(ti.groupby("nicho")["ti"].mean()).fillna(0)
+    nic["tecnico"] = (nic["fracao_ti"] >= CORTES["fracao_ti_min"]) | \
+        nic["nome"].fillna("").map(lambda t: bool(_TECNICO.search(normalizar(t))))
     return nic.sort_values("valor_ano", ascending=False), fn
 
 
@@ -258,7 +272,7 @@ def marcar_prospects(nic: pd.DataFrame, fn: pd.DataFrame, v: pd.DataFrame) -> pd
               .agg(lambda s: s.value_counts().index[0]))
     total_forn = v.groupby("raiz").agg(ganho_total_ano=("valor_ano", "sum"), nichos=("nicho", "nunique"),
                                       ufs_total=("uf", "nunique"))
-    p = fn.merge(nic[["nicho", "nome", "valor_ano", "hhi", "fornecedores", "ufs"]]
+    p = fn.merge(nic[["nicho", "nome", "valor_ano", "hhi", "fornecedores", "ufs", "tecnico"]]
                  .rename(columns={"nome": "nicho_nome", "valor_ano": "nicho_ano", "ufs": "nicho_ufs"}), on="nicho")
     p = p.merge(total_forn, left_on="raiz", right_index=True)
     # licitações distintas ganhas com disputa possível: contrato de modalidade ainda desconhecida
@@ -278,7 +292,10 @@ def marcar_prospects(nic: pd.DataFrame, fn: pd.DataFrame, v: pd.DataFrame) -> pd
     ok = ((p["share"] < c["share_max"]) & (p["licitacoes_total"] >= c["licitacoes_min_total"])
           & (p["licitacoes_nicho"] >= c["licitacoes_min_nicho"]) & (p["valor_ano"] >= c["ganho_min_ano"])
           & (p["nicho_ano"] > c["nicho_min_ano"]) & (p["hhi"] < c["hhi_max"])
-          & ((p["porte"] != "Demais") | (p["ganho_total_ano"] < c["demais_ganho_max"])))
+          & (p["pregao_concorrencia"] >= c["pregao_concorrencia_min"]) & p["tecnico"]
+          # porte "Demais" ou desconhecido só entra se não é gigante (G4F e Master, sem porte,
+          # ganhavam mais de R$ 40 mi/ano)
+          & ((p["porte"] == "ME") | (p["ganho_total_ano"] < c["demais_ganho_max"])))
     # entidade pública também aparece como fornecedora (a CIVAP, consórcio intermunicipal, liderava a lista)
     ok &= ~p["nome"].fillna("").map(lambda t: bool(_PUBLICO.search(normalizar(t))))
     p = p[ok].copy()
