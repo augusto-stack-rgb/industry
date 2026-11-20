@@ -121,6 +121,49 @@ def _paginar(s, url: str, params: dict, rows: dict) -> int:
     return vistos
 
 
+def _da_base_mercado(ini: date, fim: date, rows: dict) -> tuple[set, int]:
+    """Lê de ``mercado.contratacao`` (industry/mercado, mesma resposta do endpoint de
+    publicação) os dias que a coleta de mercado já fechou com todas as modalidades.
+    Só para recargas longas: no modo diário normal (2 dias) não compensa. Devolve
+    (dias prontos, itens vistos); sem a base, devolve vazio e tudo vai à API."""
+    if (fim - ini).days < 3:
+        return set(), 0
+    try:
+        from sqlalchemy import text
+        from industry.shared.connections import MERCADO_PG, get_sqlalchemy_engine
+        eng = get_sqlalchemy_engine(MERCADO_PG)
+        with eng.connect() as c:
+            prontos = {d for (d,) in c.execute(text(
+                """select dia from mercado.coleta_log where fonte = 'contratacoes' and status = 'ok'
+                    and dia between :a and :b and dia < current_date
+                    group by dia having count(*) >= 13"""), {"a": ini, "b": fim})}
+            if not prontos:
+                return set(), 0
+            itens = [d for (d,) in c.execute(text(
+                """select dados from mercado.contratacao
+                    where data_publicacao::date = any(:dias) and modalidade_id = any(:mods)"""),
+                {"dias": sorted(prontos), "mods": PNCP_MODALIDADES})]
+        eng.dispose()
+    except Exception as e:  # noqa: BLE001 — sem a base, segue tudo pela API
+        print(f"PNCP: base de mercado indisponível ({e}); tudo pela API")
+        return set(), 0
+    return prontos, _filtrar(itens, rows)
+
+
+def _faixas_faltando(ini: date, fim: date, prontos: set) -> list[tuple[str, str]]:
+    """Faixas contíguas de dias entre ini e fim que não estão em ``prontos``."""
+    faixas, d, a = [], ini, None
+    while d <= fim:
+        if d not in prontos and a is None:
+            a = d
+        if a is not None and (d in prontos or d == fim):
+            b = d if d not in prontos else d - timedelta(days=1)
+            faixas.append((a.strftime("%Y%m%d"), b.strftime("%Y%m%d")))
+            a = None
+        d += timedelta(days=1)
+    return faixas
+
+
 def _primeira_coleta() -> bool:
     """Sem manifesto anterior deste coletor = nunca rodou (ver assets.py)."""
     try:
@@ -144,12 +187,14 @@ def collect_pncp_abertas(dest_dir: Path = DEST_DIR, completo: bool = False) -> P
         vistos = _paginar(s, API, {"dataFinal": data_final}, rows)
         modo = "completo (todas com proposta aberta)"
     else:
-        ini = (hoje - timedelta(days=dias - 1)).strftime("%Y%m%d")
-        fim = hoje.strftime("%Y%m%d")
-        vistos = sum(_paginar(s, API_PUBLICACAO, {"dataInicial": ini, "dataFinal": fim,
-                                                  "codigoModalidadeContratacao": m}, rows)
-                     for m in PNCP_MODALIDADES)
-        modo = f"diário (publicadas de {ini} a {fim})"
+        d_ini = hoje - timedelta(days=dias - 1)
+        ini, fim = d_ini.strftime("%Y%m%d"), hoje.strftime("%Y%m%d")
+        # dias já coletados na base de mercado (mesmo endpoint) não vão de novo à API
+        prontos, vistos = _da_base_mercado(d_ini, hoje, rows)
+        vistos += sum(_paginar(s, API_PUBLICACAO, {"dataInicial": a, "dataFinal": b,
+                                                   "codigoModalidadeContratacao": m}, rows)
+                      for a, b in _faixas_faltando(d_ini, hoje, prontos) for m in PNCP_MODALIDADES)
+        modo = f"diário (publicadas de {ini} a {fim}; {len(prontos)} dias da base de mercado)"
 
     df = pd.DataFrame(list(rows.values()))
     out = dest_dir / "pncp_contratacoes_tema.csv"

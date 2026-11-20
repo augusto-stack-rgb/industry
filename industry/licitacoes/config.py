@@ -480,10 +480,12 @@ RECENCIA_DIAS = 2
 # generoso o bastante para não perder janelas de proposta longas.
 # Coleta só olha no máximo RETRO_DIAS para trás (decisão de 15/10/2026: depois
 # da primeira carga, a coleta é diária e incremental; não há carga retroativa).
-RETRO_DIAS = 7
+RETRO_DIAS = int(os.getenv("LIC_RETRO_DIAS") or 7)
 # 14 desde 27/10/2026: sem prazo conhecido, uma publicada há duas semanas ainda
 # pode estar aberta (a coleta continua olhando só RETRO_DIAS para trás)
-JANELA_BRONZE_DIAS = 14
+# Recarga de um período maior (ex.: o mês inteiro depois de dias parada): definir
+# LIC_RETRO_DIAS, LIC_JANELA_BRONZE_DIAS, LIC_PNCP_PUBLICACAO_DIAS e LIC_QUERIDO_DIARIO_DIAS.
+JANELA_BRONZE_DIAS = int(os.getenv("LIC_JANELA_BRONZE_DIAS") or 14)
 
 # ── Busca do PNCP por TERMO (além dos órgãos-alvo por CNPJ) ──────────────────
 # Na origem o PNCP era consultado só pelos CNPJs dos bancos. Serviços de ML/IA
@@ -613,7 +615,7 @@ TERMOS_TI = [
 #   - completo: TODAS com proposta aberta (/contratacoes/proposta; ~28 mil itens,
 #     ~80 min). NÃO roda sozinho (a coleta não volta além de RETRO_DIAS); fica
 #     disponível em collect_pncp_abertas(completo=True) para uma carga manual.
-PNCP_PUBLICACAO_DIAS = 2           # hoje + ontem (a dedup do bronze cobre sobreposição)
+PNCP_PUBLICACAO_DIAS = int(os.getenv("LIC_PNCP_PUBLICACAO_DIAS") or 2)  # hoje + ontem (a dedup do bronze cobre sobreposição)
 # O endpoint de publicação exige modalidade. Ficam de fora as sem disputa ou sem
 # serviço: 1 e 13 (leilão) e 9 (inexigibilidade — contratação direta já decidida).
 # 2 diálogo competitivo, 3 concurso, 4/5 concorrência, 6/7 pregão, 8 dispensa,
@@ -634,7 +636,7 @@ PNCP_ESPERA_429_S = 30.0
 # edital (portaria de equipe de planejamento, ETP). Ruidoso: só ficam trechos com
 # marcador de contratação E termo do tema no mesmo trecho (querido_diario.py).
 QUERIDO_DIARIO_API = "https://api.queridodiario.org.br/gazettes"
-QUERIDO_DIARIO_DIAS = 7            # janela de publicação consultada por execução
+QUERIDO_DIARIO_DIAS = int(os.getenv("LIC_QUERIDO_DIARIO_DIAS") or 7)  # janela de publicação consultada por execução
 QUERIDO_DIARIO_TERMOS = [
     "inteligência artificial", "aprendizado de máquina", "machine learning",
     "ciência de dados", "cientista de dados", "análise preditiva", "modelos preditivos",
